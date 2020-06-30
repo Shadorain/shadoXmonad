@@ -1,24 +1,53 @@
 -- Shadomonad Config --
 
+-------------------------------------------------------------------------------
+-- Imports -- 
+-------------------------------------------------------------------------------
+    -- Base
 import XMonad
 import Data.Monoid
 import System.Exit
-
 import qualified XMonad.StackSet as W
 import qualified Data.Map        as M
 
--- Basic Setup --
-myTerminal      = "kitty"
-myFocusFollowsMouse :: Bool -- Whether focus follows the mouse pointer.
-myFocusFollowsMouse = True
-myClickJustFocuses :: Bool -- Whether clicking on a window to focus also passes the click to the window
-myClickJustFocuses = False
+    -- Data
+import Data.Maybe (isJust)
 
+    -- Hooks
+import XMonad.Hooks.ManageDocks
+
+    -- Layouts
+import XMonad.Layout.Spiral
+import XMonad.Layout.ResizableTile
+import XMonad.Layout.Tabbed
+import XMonad.Layout.ThreeColumns
+
+    -- Utilities
+import XMonad.Util.NamedScratchpad
+import XMonad.Util.Run
+import XMonad.Util.SpawnOnce
+
+-------------------------------------------------------------------------------
+-- Variables --
+-------------------------------------------------------------------------------
+    -- Base
+myFont          = "xft:Agave:pixelsize=14" -- Set font
+myModMask       = mod1Mask -- Modkey (Alt)
+myTerminal      = "kitty" -- Set default terminal
+myTextEditor    = "nvim" -- Set default text editor
+windowCount :: X (Maybe String)
+windowCount     = gets $ Just . show . length . W.integrate' . W.stack . W.workspace . W.current . windowset -- Get count of windows in selected workspace
+
+    -- Borders
 myBorderWidth   = 3
 myNormalBorderColor  = "##8897F4"
 myFocusedBorderColor = "#9188ff"
 
-myModMask       = mod1Mask -- Modkey (Alt)
+    -- Focus
+myFocusFollowsMouse :: Bool
+myFocusFollowsMouse = True -- Whether focus follows the mouse pointer.
+myClickJustFocuses :: Bool
+myClickJustFocuses = False -- Whether clicking on a window to focus also passes the click to the window
 
 -- The default number of workspaces (virtual screens) and their names.
 -- By default we use numeric strings, but any string may be used as a
@@ -31,10 +60,9 @@ myModMask       = mod1Mask -- Modkey (Alt)
 --
 myWorkspaces    = ["1","2","3","4","5","6","7","8","9"]
 
-
 ------------------------------------------------------------------------
--- Key bindings. Add, modify or remove key bindings here.
---
+
+-- Key Bindings --
 myKeys conf@(XConfig {XMonad.modMask = modm}) = M.fromList $
 
     -- launch a terminal
@@ -151,46 +179,19 @@ myMouseBindings (XConfig {XMonad.modMask = modm}) = M.fromList $
 ------------------------------------------------------------------------
 -- Layouts:
 
--- You can specify and transform your layouts by modifying these values.
--- If you change layout bindings be sure to use 'mod-shift-space' after
--- restarting (with 'mod-q') to reset your layout state to the new
--- defaults, as xmonad preserves your old layout settings by default.
---
--- The available layouts.  Note that each layout is separated by |||,
--- which denotes layout choice.
---
-myLayout = tiled ||| Mirror tiled ||| Full
+myLayout = avoidStruts (tiled ||| Mirror tiled ||| Full)
   where
-     -- default tiling algorithm partitions the screen into two panes
-     tiled   = Tall nmaster delta ratio
-
-     -- The default number of windows in the master pane
-     nmaster = 1
-
-     -- Default proportion of screen occupied by master pane
-     ratio   = 1/2
-
-     -- Percent of screen to increment by when resizing panes
-     delta   = 3/100
+     tiled   = Tall nmaster delta ratio -- Master/Stack
+     nmaster = 1 -- Default master count
+     ratio   = 1/2 -- Default size ratio of master:stack size
+     delta   = 3/100 -- Percent of screen inc/dec when resizing
 
 ------------------------------------------------------------------------
--- Window rules:
 
--- Execute arbitrary actions and WindowSet manipulations when managing
--- a new window. You can use this to, for example, always float a
--- particular program, or have a client always appear on a particular
--- workspace.
---
--- To find the property name associated with a program, use
--- > xprop | grep WM_CLASS
--- and click on the client you're interested in.
---
--- To match on the WM_NAME, you can use 'title' in the same way that
--- 'className' and 'resource' are used below.
---
+-- Window rules:
+-- Execute arbitrary actions and WindowSet manipulations when managing a new window. You can use this to, for example, always float a particular program, or have a client always appear on a particular workspace.
 myManageHook = composeAll
-    [ className =? "MPlayer"        --> doFloat
-    , className =? "Gimp"           --> doFloat
+    [ className =? "lutris"         --> doFloat
     , resource  =? "desktop_window" --> doIgnore
     , resource  =? "kdesktop"       --> doIgnore ]
 
@@ -215,20 +216,21 @@ myLogHook = return ()
 
 ------------------------------------------------------------------------
 -- Startup hook
-
 -- Perform an arbitrary action each time xmonad starts or is restarted
 -- with mod-q.  Used by, e.g., XMonad.Layout.PerWorkspace to initialize
 -- per-workspace layout choices.
---
--- By default, do nothing.
-myStartupHook = return ()
+myStartupHook = do
+    spawnOnce "feh --bg-scale --no-fehbg ~/Pictures/Backgrounds/forest.png &"
+    spawnOnce "flameshot &"
+    spawnOnce "picom --experimental-backends &"
 
 ------------------------------------------------------------------------
--- Now run xmonad with all the defaults we set up.
 
 -- Run xmonad with the settings you specify. No need to modify this.
 --
-main = xmonad defaults
+main = do
+    xmproc <- spawnPipe "xmobar -x 0 ~/.config/xmobar/xmobarrc"
+    xmonad $ docks defaults
 
 -- A structure containing your configuration settings, overriding
 -- fields in the default config. Any you don't override, will
@@ -309,3 +311,5 @@ help = unlines ["The default modifier key is 'alt'. Default keybindings:",
     "mod-button1  Set the window to floating mode and move by dragging",
     "mod-button2  Raise the window to the top of the stack",
     "mod-button3  Set the window to floating mode and resize by dragging"]
+
+
