@@ -10,6 +10,9 @@ import System.Exit
 import qualified XMonad.StackSet as W
 import qualified Data.Map        as M
 
+    -- Actions
+import XMonad.Actions.CycleWS (moveTo, shiftTo, WSType(..), nextScreen, prevScreen)
+
     -- Data
 import Data.Maybe (isJust)
 
@@ -33,9 +36,11 @@ import XMonad.Util.SpawnOnce
 -- Variables --
 -------------------------------------------------------------------------------
     -- Base
+myBrowser       = "firefox" -- Set default browser
+myFilemngr      = "vifmrun" -- Set default file manager
 myFont          = "xft:Agave:pixelsize=14" -- Set font
-myModMask       = mod1Mask -- Modkey (Alt)
-myTerminal      = "kitty" -- Set default terminal
+myModMask       = mod1Mask -- Default Modkey (Alt)
+myTerminal      = "kitty " -- Set default terminal
 myTextEditor    = "nvim" -- Set default text editor
 windowCount :: X (Maybe String)
 windowCount     = gets $ Just . show . length . W.integrate' . W.stack . W.workspace . W.current . windowset -- Get count of windows in selected workspace
@@ -65,44 +70,70 @@ myWorkspaces    = ["1","2","3","4","5","6","7","8","9"]
 ------------------------------------------------------------------------
 
 -- Key Bindings --
--- myKeys :: [(String, X ())]
+myKeys :: XConfig Layout -> M.Map (KeyMask, KeySym) (X ())
 myKeys conf@(XConfig {XMonad.modMask = modm}) = M.fromList $
-    -- Xmonad
-    [ ((modm .|. controlMask,   xK_q     ), io (exitWith ExitSuccess)) -- Quit
+        -- Xmonad
+    [ ((modm .|. controlMask,   xK_q     ), io (exitWith ExitSuccess)                   ) -- Quit
     , ((modm,                   xK_q     ), spawn "xmonad --recompile; xmonad --restart") -- Restart
-    -- Base
-    , ((modm .|. shiftMask,     xK_Return), spawn $ XMonad.terminal conf) -- Launch default terminal
-    , ((modm,                   xK_p     ), spawn "dmenu_run") -- dmenu
-    -- Layouts
-    , ((modm,               xK_space ), sendMessage NextLayout) -- Rotate available layouts
-    , ((modm .|. shiftMask, xK_space ), setLayout $ XMonad.layoutHook conf) -- Reset layouts on current workspace
-    -- Windows
-    , ((modm .|. shiftMask, xK_c     ), kill) -- close window
-    , ((modm,               xK_n     ), refresh) -- Resize viewed windows to the correct size
-    , ((modm,               xK_Tab   ), windows W.focusDown  ) -- Focus next
-    , ((modm,               xK_j     ), windows W.focusDown  ) -- Focus next
-    , ((modm,               xK_k     ), windows W.focusUp    ) -- Focus prev
-    , ((modm,               xK_m     ), windows W.focusMaster) -- Focus master
-    , ((modm,               xK_Return), windows W.swapMaster ) -- Swap focused win with master
-    , ((modm .|. shiftMask, xK_j     ), windows W.swapDown   ) -- Swap focused win with next win
-    , ((modm .|. shiftMask, xK_k     ), windows W.swapUp     ) -- Swap focused win with previous win
-    , ((modm,               xK_h     ), sendMessage Shrink   ) -- Shrink master area
-    , ((modm,               xK_l     ), sendMessage Expand   ) -- Expand master area
-    , ((modm,               xK_t     ), withFocused $ windows . W.sink) -- Push win into tiling
-    , ((modm              , xK_comma ), sendMessage (IncMasterN 1)    ) -- Increment num of windows in master area
-    , ((modm              , xK_period), sendMessage (IncMasterN (-1)) ) -- Deincrement num of windows in master area
-    -- Scratchpads
-    , ((modm,                   xK_s), namedScratchpadAction myScratchPads "terminal")
-    , ((modm .|. shiftMask,     xK_s), namedScratchpadAction myScratchPads "ncmpcpp" )
-    -- Multimedia (Volume, Music)
-    -- , (())
+    , ((mod4Mask.|.controlMask, xK_F12   ), spawn "~/.config/scripts/switch_gpu"        ) -- Switch GPU
+        -- Base
+    , ((modm .|. shiftMask,     xK_Return), spawn $ XMonad.terminal conf                ) -- Terminal
+    , ((modm,                   xK_p     ), spawn "dmenu_run"                           ) -- Dmenu
+        -- Layouts
+    , ((modm,                   xK_space ), sendMessage NextLayout                      ) -- Rotate available layouts
+    , ((modm .|. shiftMask,     xK_space ), setLayout $ XMonad.layoutHook conf          ) -- Reset layouts on current workspace
+        -- Windows
+    , ((modm .|. shiftMask, xK_c     ), kill   ) -- close window
+    , ((modm,                   xK_n     ), refresh) -- Resize viewed windows to the correct size
+    , ((modm,                   xK_Tab   ), windows W.focusDown                         ) -- Focus next
+    , ((modm,                   xK_j     ), windows W.focusDown                         ) -- Focus next
+    , ((modm,                   xK_k     ), windows W.focusUp                           ) -- Focus prev
+    , ((modm,                   xK_m     ), windows W.focusMaster                       ) -- Focus master
+    , ((modm,                   xK_Return), windows W.swapMaster                        ) -- Swap focused win with master
+    , ((modm .|. shiftMask,     xK_j     ), windows W.swapDown                          ) -- Swap focused win with next win
+    , ((modm .|. shiftMask,     xK_k     ), windows W.swapUp                            ) -- Swap focused win with previous win
+    , ((modm,                   xK_h     ), sendMessage Shrink                          ) -- Shrink master area
+    , ((modm,                   xK_l     ), sendMessage Expand                          ) -- Expand master area
+    , ((modm,                   xK_t     ), withFocused $ windows . W.sink              ) -- Push win into tiling
+    , ((modm,                   xK_bracketright), sendMessage (IncMasterN 1)            ) -- Increment num of windows in master area
+    , ((modm,                   xK_bracketleft), sendMessage (IncMasterN (-1))          ) -- Deincrement num of windows in master area
+    , ((modm,                   xK_comma ), nextScreen                                  ) -- Focus next mon
+    , ((modm,                   xK_period), prevScreen                                  ) -- Focus prev mon
+        -- Scratchpads
+    , ((modm,                   xK_s), namedScratchpadAction myScratchPads "terminal"   ) -- Terminal Scrtchpd
+    , ((modm .|. shiftMask,     xK_s), namedScratchpadAction myScratchPads "ncmpcpp"    ) -- Ncmpcpp Scrtchpd
+        -- Multimedia (Volume, MPD)
+    , ((0,                      0x1008FF11), spawn "pulsemixer --change-volume -2"      ) -- Volume Down , ((0,                      0x1008FF13), spawn "pulsemixer --change-volume +2"      ) -- Volume Up
+    , ((0,                      0x1008FF12), spawn "pulsemixer --toggle-mute"           ) -- Mute
+    , ((0,                      0x1008FF14), spawn "mpc toggle"                         ) -- Play/Pause
+    , ((modm,                   0x1008FF15), spawn "mpc shuffle"                        ) -- Shuffle
+    , ((0,                      0x1008FF16), spawn "mpc prev"                           ) -- Prev Track
+    , ((0,                      0x1008FF17), spawn "mpc next"                           ) -- Next Track
+        -- Brightness
+    , ((0,                      0x1008FF02), spawn "xbacklight -inc 5"                  ) -- Inc Brightness
+    , ((0,                      0x1008FF03), spawn "xbacklight -dec 5"                  ) -- Dec Brightness
 
+        -- Open Applications
+    , ((mod4Mask,                   xK_b      ), spawn myBrowser                                         ) -- Browser
+    , ((mod4Mask .|. controlMask,   xK_m      ), spawn (myTerminal ++ "calcurse")                        ) -- Calcurse
+    , ((mod4Mask .|. shiftMask,     xK_d      ), spawn "discord"                                         ) -- Discord
+    , ((mod4Mask,                   xK_v      ), spawn (myTerminal ++ myFilemngr)                        ) -- File Manager
+    , ((mod4Mask,                   xK_a      ), spawn (myTerminal ++ "pulsemixer")                      ) -- Mixer
+    , ((mod4Mask .|. shiftMask,     xK_m      ), spawn (myTerminal ++ "ncmpcpp")                         ) -- Ncmpcpp
+    , ((mod4Mask,                   xK_w      ), spawn (myTerminal ++ "nmtui")                           ) -- Netork
+    , ((mod4Mask,                   xK_p      ), spawn (myTerminal ++ "htop")                            ) -- Processes
+    , ((mod4Mask,                   xK_s      ), spawn "~/.config/rofi/scripts/menu_powermenu.sh"        ) -- Processes
+        -- Screenshots
+    , ((shiftMask .|. controlMask,  xK_Print  ), spawn "flameshot gui -p ~/Pictures/Screenshots"         ) -- Area
+    , ((0,                          xK_Print  ), spawn "scrot '~/Pictures/Screenshots/%F_%T.png'"        ) -- Fullscreen
+    , ((mod4Mask .|. modm,          xK_Print  ), spawn "flameshot screen -r -c -p ~/Pictures/Screenshots") -- Monitor
+    , ((controlMask,                xK_Print  ), spawn "scrot -u '~/Pictures/Screenshots'"               ) -- Window
+    
     -- Toggle the status bar gap
     -- Use this binding with avoidStruts from Hooks.ManageDocks.
     -- See also the statusBar function from Hooks.DynamicLog.
     --
     -- , ((modm              , xK_b     ), sendMessage ToggleStruts)
-
     ]
     ++
 
