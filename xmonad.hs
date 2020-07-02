@@ -1,7 +1,7 @@
 -- Shadomonad Config --
 
 -------------------------------------------------------------------------------
--- Imports -- 
+-- Imports:
 -------------------------------------------------------------------------------
     -- Base
 import XMonad
@@ -12,6 +12,7 @@ import qualified Data.Map        as M
 
     -- Actions
 import XMonad.Actions.CycleWS (moveTo, shiftTo, WSType(..), nextScreen, prevScreen)
+import XMonad.Actions.GridSelect
 
     -- Data
 import Data.Maybe (isJust)
@@ -21,10 +22,18 @@ import XMonad.Hooks.ManageDocks
 import XMonad.Hooks.ManageHelpers (isFullscreen, doFullFloat)
 
     -- Layouts
-import XMonad.Layout.Spiral
 import XMonad.Layout.ResizableTile
+import XMonad.Layout.Spiral
 import XMonad.Layout.Tabbed
 import XMonad.Layout.ThreeColumns
+
+    -- Layout Mods
+import XMonad.Layout.LayoutModifier
+import XMonad.Layout.MultiToggle (mkToggle, single, EOT(EOT), (??))
+import XMonad.Layout.MultiToggle.Instances (StdTransformers(NBFULL, MIRROR, NOBORDERS))
+import XMonad.Layout.NoBorders
+import XMonad.Layout.Spacing
+import qualified XMonad.Layout.MultiToggle as MT (Toggle(..))
 
     -- Utilities
 import XMonad.Util.EZConfig
@@ -33,7 +42,7 @@ import XMonad.Util.Run
 import XMonad.Util.SpawnOnce
 
 -------------------------------------------------------------------------------
--- Variables --
+-- Variables:
 -------------------------------------------------------------------------------
     -- Base
 myBrowser       = "firefox" -- Set default browser
@@ -67,24 +76,28 @@ myClickJustFocuses = False -- Whether clicking on a window to focus also passes 
 --
 myWorkspaces    = ["1","2","3","4","5","6","7","8","9"]
 
-------------------------------------------------------------------------
-
--- Key Bindings --
+-------------------------------------------------------------------------------
+-- Key Bindings:
+-------------------------------------------------------------------------------
 myKeys :: XConfig Layout -> M.Map (KeyMask, KeySym) (X ())
 myKeys conf@(XConfig {XMonad.modMask = modm}) = M.fromList $
         -- Xmonad
     [ ((modm .|. controlMask,   xK_q     ), io (exitWith ExitSuccess)                   ) -- Quit
     , ((modm,                   xK_q     ), spawn "xmonad --recompile; xmonad --restart") -- Restart
     , ((mod4Mask.|.controlMask, xK_F12   ), spawn "~/.config/scripts/switch_gpu"        ) -- Switch GPU
+    , ((modm .|. controlMask,   xK_b     ), spawn "killall xmobar; xmobar") -- Xmobar Restart
         -- Base
     , ((modm .|. shiftMask,     xK_Return), spawn $ XMonad.terminal conf                ) -- Terminal
     , ((modm,                   xK_p     ), spawn "dmenu_run"                           ) -- Dmenu
+    , ((modm,                   xK_b     ), sendMessage ToggleStruts                    ) -- Toggle Bar
+    , ((modm .|. shiftMask,     xK_b     ), sendMessage $ (MT.Toggle NOBORDERS)         ) -- Toggle Borders
         -- Layouts
     , ((modm,                   xK_space ), sendMessage NextLayout                      ) -- Rotate available layouts
     , ((modm .|. shiftMask,     xK_space ), setLayout $ XMonad.layoutHook conf          ) -- Reset layouts on current workspace
+    , ((modm,                   xK_f     ), sendMessage (MT.Toggle NBFULL) >> sendMessage ToggleStruts) -- Toggles Fullscreen
         -- Windows
-    , ((modm .|. shiftMask, xK_c     ), kill   ) -- close window
-    , ((modm,                   xK_n     ), refresh) -- Resize viewed windows to the correct size
+    , ((modm .|. shiftMask, xK_c     ), kill                                            ) -- close window
+    , ((modm,                   xK_n     ), refresh                                     ) -- Resize viewed windows to the correct size
     , ((modm,                   xK_Tab   ), windows W.focusDown                         ) -- Focus next
     , ((modm,                   xK_j     ), windows W.focusDown                         ) -- Focus next
     , ((modm,                   xK_k     ), windows W.focusUp                           ) -- Focus prev
@@ -103,7 +116,8 @@ myKeys conf@(XConfig {XMonad.modMask = modm}) = M.fromList $
     , ((modm,                   xK_s), namedScratchpadAction myScratchPads "terminal"   ) -- Terminal Scrtchpd
     , ((modm .|. shiftMask,     xK_s), namedScratchpadAction myScratchPads "ncmpcpp"    ) -- Ncmpcpp Scrtchpd
         -- Multimedia (Volume, MPD)
-    , ((0,                      0x1008FF11), spawn "pulsemixer --change-volume -2"      ) -- Volume Down , ((0,                      0x1008FF13), spawn "pulsemixer --change-volume +2"      ) -- Volume Up
+    , ((0,                      0x1008FF11), spawn "pulsemixer --change-volume -2"      ) -- Volume Down 
+    , ((0,                      0x1008FF13), spawn "pulsemixer --change-volume +2"      ) -- Volume Up
     , ((0,                      0x1008FF12), spawn "pulsemixer --toggle-mute"           ) -- Mute
     , ((0,                      0x1008FF14), spawn "mpc toggle"                         ) -- Play/Pause
     , ((modm,                   0x1008FF15), spawn "mpc shuffle"                        ) -- Shuffle
@@ -128,12 +142,10 @@ myKeys conf@(XConfig {XMonad.modMask = modm}) = M.fromList $
     , ((0,                          xK_Print  ), spawn "scrot '~/Pictures/Screenshots/%F_%T.png'"        ) -- Fullscreen
     , ((mod4Mask .|. modm,          xK_Print  ), spawn "flameshot screen -r -c -p ~/Pictures/Screenshots") -- Monitor
     , ((controlMask,                xK_Print  ), spawn "scrot -u '~/Pictures/Screenshots'"               ) -- Window
-    
-    -- Toggle the status bar gap
-    -- Use this binding with avoidStruts from Hooks.ManageDocks.
-    -- See also the statusBar function from Hooks.DynamicLog.
-    --
-    -- , ((modm              , xK_b     ), sendMessage ToggleStruts)
+        -- Grid Select
+    , ((modm,                       xK_g      ), goToSelected $ mygridConfig myColorizer ) -- Go to grid item
+    , ((modm .|. shiftMask,         xK_g      ), bringSelected $ mygridConfig myColorizer) -- Grab and brind over grid item
+    , ((modm .|. controlMask,       xK_g      ), spawnSelected' myAppGrid) -- Custom program list
     ]
     ++
 
@@ -156,8 +168,8 @@ myKeys conf@(XConfig {XMonad.modMask = modm}) = M.fromList $
 
 
 ------------------------------------------------------------------------
--- Mouse bindings: default actions bound to mouse events
---
+-- Mouse bindings:
+------------------------------------------------------------------------
 myMouseBindings (XConfig {XMonad.modMask = modm}) = M.fromList $
 
     -- mod-button1, Set the window to floating mode and move by dragging
@@ -174,9 +186,13 @@ myMouseBindings (XConfig {XMonad.modMask = modm}) = M.fromList $
     -- you may also bind events to the mouse scroll wheel (button4 and button5)
     ]
 
-------------------------------------------------------------------------
+-------------------------------------------------------------------------------
 -- Layouts:
+-------------------------------------------------------------------------------
 
+mySpacing' :: Integer -> l a -> XMonad.Layout.LayoutModifier.ModifiedLayout Spacing l a
+mySpacing' i = spacingRaw True (Border i i i i) True (Border i i i i) True
+-- mySpacing 8
 myLayout = avoidStruts (tiled ||| Mirror tiled ||| Full)
   where
      tiled   = Tall nmaster delta ratio -- Master/Stack
@@ -184,16 +200,15 @@ myLayout = avoidStruts (tiled ||| Mirror tiled ||| Full)
      ratio   = 1/2 -- Default size ratio of master:stack size
      delta   = 3/100 -- Percent of screen inc/dec when resizing
 
-------------------------------------------------------------------------
-
+-------------------------------------------------------------------------------
 -- Window rules:
--- Execute arbitrary actions and WindowSet manipulations when managing a new window. You can use this to, for example, always float a particular program, or have a client always appear on a particular workspace.
+-------------------------------------------------------------------------------
 myManageHook = composeAll
     [ className =? "lutris"         --> doFloat
     , resource  =? "desktop_window" --> doIgnore
     , resource  =? "kdesktop"       --> doIgnore ]
 
-------------------------------------------------------------------------
+-------------------------------------------------------------------------------
 -- Event handling
 
 -- * EwmhDesktops users should change this to ewmhDesktopsEventHook
@@ -204,7 +219,7 @@ myManageHook = composeAll
 --
 myEventHook = mempty
 
-------------------------------------------------------------------------
+-------------------------------------------------------------------------------
 -- Status bars and logging
 
 -- Perform an arbitrary action on each internal state change or X event.
@@ -212,7 +227,7 @@ myEventHook = mempty
 --
 myLogHook = return ()
 
-------------------------------------------------------------------------
+-------------------------------------------------------------------------------
 -- Startup hook
 -- Perform an arbitrary action each time xmonad starts or is restarted
 -- with mod-q.  Used by, e.g., XMonad.Layout.PerWorkspace to initialize
@@ -222,7 +237,7 @@ myStartupHook = do
     spawnOnce "flameshot &"
     spawnOnce "picom --experimental-backends &"
 
-------------------------------------------------------------------------
+-------------------------------------------------------------------------------
 
 -- Run xmonad with the settings you specify. No need to modify this.
 --
@@ -237,80 +252,63 @@ main = do
 -- No need to modify this.
 --
 defaults = def {
-      -- simple stuff
-        terminal           = myTerminal,
-        focusFollowsMouse  = myFocusFollowsMouse,
-        clickJustFocuses   = myClickJustFocuses,
-        borderWidth        = myBorderWidth,
-        modMask            = myModMask,
-        workspaces         = myWorkspaces,
-        normalBorderColor  = myNormalBorderColor,
-        focusedBorderColor = myFocusedBorderColor,
-
-      -- key bindings
-        keys               = myKeys,
-        mouseBindings      = myMouseBindings,
-
-      -- hooks, layouts
-        layoutHook         = myLayout,
-        manageHook         = myManageHook,
-        handleEventHook    = myEventHook,
-        logHook            = myLogHook,
-        startupHook        = myStartupHook
-    }
-
--- | Finally, a copy of the default bindings in simple textual tabular format.
-help :: String
-help = unlines ["The default modifier key is 'alt'. Default keybindings:",
-    "",
-    "-- launching and killing programs",
-    "mod-Shift-Enter  Launch default terminal",
-    "mod-p            Launch dmenu",
-    "mod-Shift-c      Close/kill the focused window",
-    "mod-Space        Rotate through the available layout algorithms",
-    "mod-Shift-Space  Reset the layouts on the current workSpace to default",
-    "mod-n            Resize/refresh viewed windows to the correct size",
-    "",
-    "-- move focus up or down the window stack",
-    "mod-Tab        Move focus to the next window",
-    "mod-Shift-Tab  Move focus to the previous window",
-    "mod-j          Move focus to the next window",
-    "mod-k          Move focus to the previous window",
-    "mod-m          Move focus to the master window",
-    "",
-    "-- modifying the window order",
-    "mod-Return   Swap the focused window and the master window",
-    "mod-Shift-j  Swap the focused window with the next window",
-    "mod-Shift-k  Swap the focused window with the previous window",
-    "",
-    "-- resizing the master/slave ratio",
-    "mod-h  Shrink the master area",
-    "mod-l  Expand the master area",
-    "",
-    "-- floating layer support",
-    "mod-t  Push window back into tiling; unfloat and re-tile it",
-    "",
-    "-- increase or decrease number of windows in the master area",
-    "mod-comma  (mod-,)   Increment the number of windows in the master area",
-    "mod-period (mod-.)   Deincrement the number of windows in the master area",
-    "",
-    "-- quit, or restart",
-    "mod-Shift-q  Quit xmonad",
-    "mod-q        Restart xmonad",
-    "mod-[1..9]   Switch to workSpace N",
-    "",
-    "-- Workspaces & screens",
-    "mod-Shift-[1..9]   Move client to workspace N",
-    "mod-{w,e,r}        Switch to physical/Xinerama screens 1, 2, or 3",
-    "mod-Shift-{w,e,r}  Move client to screen 1, 2, or 3",
-    "",
-    "-- Mouse bindings: default actions bound to mouse events",
-    "mod-button1  Set the window to floating mode and move by dragging",
-    "mod-button2  Raise the window to the top of the stack",
-    "mod-button3  Set the window to floating mode and resize by dragging"]
+        -- simple stuff
+    terminal           = myTerminal,
+    focusFollowsMouse  = myFocusFollowsMouse,
+    clickJustFocuses   = myClickJustFocuses,
+    borderWidth        = myBorderWidth,
+    modMask            = myModMask,
+    workspaces         = myWorkspaces,
+    normalBorderColor  = myNormalBorderColor,
+    focusedBorderColor = myFocusedBorderColor,
+        -- key bindings
+    keys               = myKeys,
+    mouseBindings      = myMouseBindings,
+        -- hooks, layouts
+    layoutHook         = myLayout,
+    manageHook         = myManageHook,
+    handleEventHook    = myEventHook,
+    logHook            = myLogHook,
+    startupHook        = myStartupHook
+}
 
 --------------------------------------------------------------------------------
--- Named Scratchpads --
+-- Grid Select:
+--------------------------------------------------------------------------------
+myColorizer :: Window -> Bool -> X (String, String)
+myColorizer = colorRangeFromClassName
+                  (0x29,0x2d,0x3e) -- lowest inactive bg
+                  (0x29,0x2d,0x3e) -- highest inactive bg
+                  (0xc7,0x92,0xea) -- active bg
+                  (0xc0,0xa7,0x9a) -- inactive fg
+                  (0x29,0x2d,0x3e) -- active fg
+
+mygridConfig colorizer = (buildDefaultGSConfig myColorizer)
+    { gs_cellheight   = 30
+    , gs_cellwidth    = 200
+    , gs_cellpadding  = 8
+    , gs_originFractX = 0.5
+    , gs_originFractY = 0.5
+    , gs_font         = myFont
+    }
+
+spawnSelected' :: [(String, String)] -> X ()
+spawnSelected' lst = gridselect conf lst >>= flip whenJust spawn
+    where conf = defaultGSConfig
+
+myAppGrid :: [(String, String)]
+myAppGrid = [ (a,b) | (a,b,c) <- xs]
+  where xs = myApplications
+
+myApplications :: [(String, String, String)]
+myApplications = [ 
+        ("Shadoplan", "sp", "My TODO program")
+        , ("Audacity", "audacity", "Music/Audio editor and recorder")
+        , ("Krita", "krita", "Advanced art/drawing program")
+        , ("Dolphin", "dolphin", "GUI File manager")
+        ]
+--------------------------------------------------------------------------------
+-- Named Scratchpads:
 --------------------------------------------------------------------------------
 myScratchPads :: [NamedScratchpad]
 myScratchPads = [ NS "terminal" spawnTerm findTerm manageTerm
