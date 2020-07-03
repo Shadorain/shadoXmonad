@@ -8,18 +8,32 @@ import XMonad
 import Data.Monoid
 import System.Exit
 import qualified XMonad.StackSet as W
-import qualified Data.Map        as M
 
     -- Actions
 import XMonad.Actions.CycleWS (moveTo, shiftTo, WSType(..), nextScreen, prevScreen)
 import XMonad.Actions.GridSelect
+import XMonad.Actions.Navigation2D
+import XMonad.Actions.Submap           as SM
+import XMonad.Actions.Search
+import qualified XMonad.Actions.Search as S
 
     -- Data
 import Data.Maybe (isJust)
+import qualified Data.Map        as M
+
+    -- Dbus
+import qualified DBus as D
+import qualified DBus.Client as D
+import qualified Codec.Binary.UTF8.String as UTF8
 
     -- Hooks
+import XMonad.Hooks.DynamicLog
+import XMonad.Hooks.EwmhDesktops
 import XMonad.Hooks.ManageDocks
 import XMonad.Hooks.ManageHelpers (isFullscreen, doFullFloat)
+import XMonad.Hooks.Minimize
+import XMonad.Hooks.Place
+import XMonad.Hooks.UrgencyHook
 
     -- Layouts
 import XMonad.Layout.ResizableTile
@@ -35,6 +49,14 @@ import XMonad.Layout.NoBorders
 import XMonad.Layout.Spacing
 import qualified XMonad.Layout.MultiToggle as MT (Toggle(..))
 
+    -- Prompts
+import XMonad.Prompt
+import XMonad.Prompt.Input
+import XMonad.Prompt.FuzzyMatch
+import XMonad.Prompt.Man
+import XMonad.Prompt.Shell (shellPrompt)
+import Control.Arrow (first)
+
     -- Utilities
 import XMonad.Util.EZConfig
 import XMonad.Util.NamedScratchpad
@@ -48,7 +70,6 @@ import XMonad.Util.SpawnOnce
 myBrowser       = "firefox" -- Set default browser
 myFilemngr      = "vifmrun" -- Set default file manager
 myFont          = "xft:Agave:pixelsize=14" -- Set font
-myModMask       = mod1Mask -- Default Modkey (Alt)
 myTerminal      = "kitty " -- Set default terminal
 myTextEditor    = "nvim" -- Set default text editor
 windowCount :: X (Maybe String)
@@ -59,21 +80,32 @@ myBorderWidth   = 3
 myNormalBorderColor  = "##8897F4"
 myFocusedBorderColor = "#9188ff"
 
+    -- Colors
+fg = "#c6b3e6"
+bg = "#09090d"
+cRed = "#f0416d"
+cPurp = "#e1acff"
+cBlue = "#2384de"
+cPurpBlue = "#9188ff"
+cPink = "#ff79c6"
+cMint = "#23dea9"
+cTeal = "#87b0d6"
+
+cNormal = "#37d4a7"
+cWarning = "#c9083f"
+    
     -- Focus
 myFocusFollowsMouse :: Bool
 myFocusFollowsMouse = True -- Whether focus follows the mouse pointer.
 myClickJustFocuses :: Bool
 myClickJustFocuses = False -- Whether clicking on a window to focus also passes the click to the window
 
--- The default number of workspaces (virtual screens) and their names.
--- By default we use numeric strings, but any string may be used as a
--- workspace name. The number of workspaces is determined by the length
--- of this list.
---
--- A tagging example:
---
+    -- Mod Masks
+myModMask       = mod1Mask -- Default Modkey (Alt)
+supModMask      = mod4Mask -- Super Key
+
+    -- Workspaces
 -- > workspaces = ["web", "irc", "code" ] ++ map show [4..9]
---
 myWorkspaces    = ["1","2","3","4","5","6","7","8","9"]
 
 -------------------------------------------------------------------------------
@@ -143,46 +175,48 @@ myKeys conf@(XConfig {XMonad.modMask = modm}) = M.fromList $
     , ((mod4Mask .|. modm,          xK_Print  ), spawn "flameshot screen -r -c -p ~/Pictures/Screenshots") -- Monitor
     , ((controlMask,                xK_Print  ), spawn "scrot -u '~/Pictures/Screenshots'"               ) -- Window
         -- Grid Select
-    , ((modm,                       xK_g      ), goToSelected $ mygridConfig myColorizer ) -- Go to grid item
-    , ((modm .|. shiftMask,         xK_g      ), bringSelected $ mygridConfig myColorizer) -- Grab and brind over grid item
-    , ((modm .|. controlMask,       xK_g      ), spawnSelected' myAppGrid) -- Custom program list
+    , ((modm,                       xK_g      ), goToSelected $ mygridConfig myColorizer                 ) -- Go to grid item
+    , ((modm .|. shiftMask,         xK_g      ), bringSelected $ mygridConfig myColorizer                ) -- Grab and brind over grid item
+    , ((modm .|. controlMask,       xK_g      ), spawnSelected' myAppGrid                                ) -- Custom program list
+        -- Search Engine
+    , ((modm,               xK_slash), SM.submap $ searchEngineMap $ promptSearch shXPConfig'            ) -- Searches via prompt
+    , ((modm .|. shiftMask, xK_slash), SM.submap $ searchEngineMap $ selectSearch                        ) -- Searches via clipboard
     ]
     ++
-
-    --
-    -- mod-[1..9], Switch to workspace N
-    -- mod-shift-[1..9], Move client to workspace N
-    --
     [((m .|. modm, k), windows $ f i)
         | (i, k) <- zip (XMonad.workspaces conf) [xK_1 .. xK_9]
         , (f, m) <- [(W.greedyView, 0), (W.shift, shiftMask)]]
     ++
-
-    --
-    -- mod-{w,e,r}, Switch to physical/Xinerama screens 1, 2, or 3
-    -- mod-shift-{w,e,r}, Move client to screen 1, 2, or 3
-    --
+    -- mod-{w,e,r}, Switch to physical/Xinerama screens 1, 2, or 3 mod-shift-{w,e,r}, Move client to screen 1, 2, or 3
     [((m .|. modm, key), screenWorkspace sc >>= flip whenJust (windows . f))
         | (key, sc) <- zip [xK_w, xK_e, xK_r] [0..]
         , (f, m) <- [(W.view, 0), (W.shift, shiftMask)]]
-
+    where
+        searchEngineMap method = M.fromList $
+             [ ((0, xK_a), method archwiki)
+             , ((0, xK_c), method cppref)
+             , ((0, xK_d), method S.duckduckgo)
+             , ((0, xK_g), method S.google)
+             , ((0, xK_h), method S.hoogle)
+             , ((0, xK_i), method S.images)
+             , ((0, xK_r), method reddit)
+             , ((0, xK_s), method S.stackage)
+             , ((0, xK_t), method S.thesaurus)
+             , ((0, xK_w), method S.wikipedia)
+             , ((0, xK_y), method S.youtube)
+             , ((0, xK_z), method S.amazon)
+             ]
 
 ------------------------------------------------------------------------
 -- Mouse bindings:
 ------------------------------------------------------------------------
 myMouseBindings (XConfig {XMonad.modMask = modm}) = M.fromList $
-
     -- mod-button1, Set the window to floating mode and move by dragging
-    [ ((modm, button1), (\w -> focus w >> mouseMoveWindow w
-                                       >> windows W.shiftMaster))
-
+    [ ((modm, button1), (\w -> focus w >> mouseMoveWindow w >> windows W.shiftMaster))
     -- mod-button2, Raise the window to the top of the stack
     , ((modm, button2), (\w -> focus w >> windows W.shiftMaster))
-
     -- mod-button3, Set the window to floating mode and resize by dragging
-    , ((modm, button3), (\w -> focus w >> mouseResizeWindow w
-                                       >> windows W.shiftMaster))
-
+    , ((modm, button3), (\w -> focus w >> mouseResizeWindow w >> windows W.shiftMaster))
     -- you may also bind events to the mouse scroll wheel (button4 and button5)
     ]
 
@@ -220,39 +254,55 @@ myManageHook = composeAll
 myEventHook = mempty
 
 -------------------------------------------------------------------------------
--- Status bars and logging
-
--- Perform an arbitrary action on each internal state change or X event.
--- See the 'XMonad.Hooks.DynamicLog' extension for examples.
---
-myLogHook = return ()
-
+-- Autostart:
 -------------------------------------------------------------------------------
--- Startup hook
--- Perform an arbitrary action each time xmonad starts or is restarted
--- with mod-q.  Used by, e.g., XMonad.Layout.PerWorkspace to initialize
--- per-workspace layout choices.
+myStartupHook :: X ()
 myStartupHook = do
     spawnOnce "feh --bg-scale --no-fehbg ~/Pictures/Backgrounds/forest.png &"
     spawnOnce "flameshot &"
     spawnOnce "picom --experimental-backends &"
+    -- spawnOnce "~/.config/polybar/launch.sh"
 
 -------------------------------------------------------------------------------
-
--- Run xmonad with the settings you specify. No need to modify this.
---
+-- Defaults:
+-------------------------------------------------------------------------------
 main = do
-    xmproc <- spawnPipe "xmobar -x 0 ~/.config/xmobar/xmobarrc"
-    xmonad $ docks defaults
+    -- dbus <- D.connectSession
+    -- D.requestName dbus (D.busName_ "org.xmonad.Log")
+        -- [D.nameAllowReplacement, D.nameReplaceExisting, D.nameDoNotQueue]
+    xmonad $  def -- { logHook = dynamicLogWithPP (myLogHook dbus)} -- docks defaults
+    -- xmonad . withUrgencyHook NoUrgencyHook . withNavigation2DConfig defaultNavigation2DConfig . ewmh . docks $
+        -- defaults
+        --     { logHook = dynamicLogWithPP (myLogHook dbus) , startupHook = spawn "polybar-msg cmd restart" }
+    -- xmproc <- spawnPipe "xmobar -x 0 ~/.config/xmobar/xmobarrc"
 
--- A structure containing your configuration settings, overriding
--- fields in the default config. Any you don't override, will
--- use the defaults defined in xmonad/XMonad/Config.hs
---
--- No need to modify this.
---
+-- Override the PP values as you would otherwise, adding colors etc depending on  the statusbar used
+-- myLogHook :: D.Client -> PP
+-- myLogHook dbus = def 
+--     { ppOutput = dbusOutput dbus 
+--     , ppCurrent = wrap ("%{B" ++ bg ++ "} ") " %{B-}"
+--     , ppVisible = wrap ("%{B" ++ bg ++ "} ") " %{B-}"
+--     , ppUrgent = wrap ("%{F" ++ cRed ++ "} ") " %{F-}"
+--     , ppHidden = wrap " " " "
+--     , ppWsSep = ""
+--     , ppSep = " : "
+--     , ppTitle = shorten 40
+--     }
+
+-- -- Emit a DBus signal on log updates
+-- dbusOutput :: D.Client -> String -> IO ()
+-- dbusOutput dbus str = do
+--     let signal = (D.signal objectPath interfaceName memberName) {
+--         D.signalBody = [D.toVariant $ UTF8.decodeString str]
+--     }
+--     D.emit dbus signal
+--     where
+--         objectPath = D.objectPath_ "/org/xmonad/Log"
+--         interfaceName = D.interfaceName_ "org.xmonad.Log"
+--         memberName = D.memberName_ "Update"
+
 defaults = def {
-        -- simple stuff
+        -- Base
     terminal           = myTerminal,
     focusFollowsMouse  = myFocusFollowsMouse,
     clickJustFocuses   = myClickJustFocuses,
@@ -261,16 +311,90 @@ defaults = def {
     workspaces         = myWorkspaces,
     normalBorderColor  = myNormalBorderColor,
     focusedBorderColor = myFocusedBorderColor,
-        -- key bindings
+        -- Keys
     keys               = myKeys,
     mouseBindings      = myMouseBindings,
-        -- hooks, layouts
+        -- Hooks/Layouts
     layoutHook         = myLayout,
+    -- manageHook = placeHook (smart (0.5, 0.5))
+    --             <+> manageDocks
+    --             <+> myManageHook
+    --             <+> manageHook def,
     manageHook         = myManageHook,
+    -- logHook            = myLogHook,
     handleEventHook    = myEventHook,
-    logHook            = myLogHook,
     startupHook        = myStartupHook
 }
+
+--------------------------------------------------------------------------------
+-- Xprompt:
+--------------------------------------------------------------------------------
+shXPConfig :: XPConfig
+shXPConfig = def
+    { font          = myFont
+    , bgColor       = "#292d3e"
+    , fgColor             = "#d0d0d0"
+    , bgHLight            = "#c792ea"
+    , fgHLight            = "#000000"
+    , borderColor         = "#535974"
+    , promptBorderWidth   = 0
+    , promptKeymap        = shXPKeymap
+    , position            = Top
+    , height              = 20
+    , historySize         = 256
+    , historyFilter       = id
+    , defaultText         = []
+    , autoComplete        = Just 100000  -- set Just 100000 for .1 sec
+    , showCompletionOnTab = False
+    , searchPredicate     = fuzzyMatch
+    , alwaysHighlight     = True
+    , maxComplRows        = Nothing      -- set to Just 5 for 5 rows
+    }
+
+shXPConfig' :: XPConfig
+shXPConfig' = shXPConfig { autoComplete = Nothing }
+
+------------------------------------------------------------------------
+-- Xprompt Keymap:
+------------------------------------------------------------------------
+shXPKeymap :: M.Map (KeyMask,KeySym) (XP ())
+shXPKeymap = M.fromList $
+     map (first $ (,) controlMask)   -- control + <key>
+     [ (xK_z, killBefore)            -- kill line backwards
+     , (xK_k, killAfter)             -- kill line forwards
+     , (xK_a, startOfLine)           -- move to the beginning of the line
+     , (xK_e, endOfLine)             -- move to the end of the line
+     , (xK_m, deleteString Next)     -- delete a character foward
+     , (xK_b, moveCursor Prev)       -- move cursor forward
+     , (xK_f, moveCursor Next)       -- move cursor backward
+     , (xK_BackSpace, killWord Prev) -- kill the previous word
+     , (xK_y, pasteString)           -- paste a string
+     , (xK_g, quit)                  -- quit out of prompt
+     , (xK_bracketleft, quit)
+     ]
+     ++
+     map (first $ (,) supModMask)    -- meta key + <key>
+     [ (xK_BackSpace, killWord Prev) -- kill the prev word
+     , (xK_f, moveWord Next)         -- move a word forward
+     , (xK_b, moveWord Prev)         -- move a word backward
+     , (xK_d, killWord Next)         -- kill the next word
+     , (xK_n, moveHistory W.focusUp')   -- move up thru history
+     , (xK_p, moveHistory W.focusDown') -- move down thru history
+     ]
+     ++
+     map (first $ (,) 0) -- <key>
+     [ (xK_Return, setSuccess True >> setDone True)
+     , (xK_KP_Enter, setSuccess True >> setDone True)
+     , (xK_BackSpace, deleteString Prev)
+     , (xK_Delete, deleteString Next)
+     , (xK_Left, moveCursor Prev)
+     , (xK_Right, moveCursor Next)
+     , (xK_Home, startOfLine)
+     , (xK_End, endOfLine)
+     , (xK_Down, moveHistory W.focusUp')
+     , (xK_Up, moveHistory W.focusDown')
+     , (xK_Escape, quit)
+     ]
 
 --------------------------------------------------------------------------------
 -- Grid Select:
@@ -307,6 +431,16 @@ myApplications = [
         , ("Krita", "krita", "Advanced art/drawing program")
         , ("Dolphin", "dolphin", "GUI File manager")
         ]
+
+--------------------------------------------------------------------------------
+-- Search Engines:
+--------------------------------------------------------------------------------
+archwiki, reddit, cppref :: S.SearchEngine
+
+archwiki = S.searchEngine "archwiki" "https://wiki.archlinux.org/index.php?search="
+reddit   = S.searchEngine "reddit"   "https://www.reddit.com/search?q="
+cppref   = S.searchEngine "cppref"   "https://en.cppreference.com/mwiki/index.php?search="
+
 --------------------------------------------------------------------------------
 -- Named Scratchpads:
 --------------------------------------------------------------------------------
