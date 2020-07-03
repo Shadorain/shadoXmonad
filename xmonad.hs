@@ -7,10 +7,13 @@
 import XMonad
 import Data.Monoid
 import System.Exit
+import System.IO (hClose)
+import Graphics.X11.ExtraTypes.XF86
 import qualified XMonad.StackSet as W
 
     -- Actions
 import XMonad.Actions.CycleWS (moveTo, shiftTo, WSType(..), nextScreen, prevScreen)
+import XMonad.Actions.DynamicProjects
 import XMonad.Actions.GridSelect
 import XMonad.Actions.Navigation2D
 import XMonad.Actions.Submap           as SM
@@ -19,6 +22,7 @@ import qualified XMonad.Actions.Search as S
 
     -- Data
 import Data.Maybe (isJust)
+import Data.Ratio ((%))
 import qualified Data.Map        as M
 
     -- Dbus
@@ -30,9 +34,10 @@ import qualified Codec.Binary.UTF8.String as UTF8
 import XMonad.Hooks.DynamicLog
 import XMonad.Hooks.EwmhDesktops
 import XMonad.Hooks.ManageDocks
-import XMonad.Hooks.ManageHelpers (isFullscreen, doFullFloat)
+import XMonad.Hooks.ManageHelpers
 import XMonad.Hooks.Minimize
 import XMonad.Hooks.Place
+import XMonad.Hooks.SetWMName
 import XMonad.Hooks.UrgencyHook
 
     -- Layouts
@@ -46,6 +51,7 @@ import XMonad.Layout.LayoutModifier
 import XMonad.Layout.MultiToggle (mkToggle, single, EOT(EOT), (??))
 import XMonad.Layout.MultiToggle.Instances (StdTransformers(NBFULL, MIRROR, NOBORDERS))
 import XMonad.Layout.NoBorders
+import XMonad.Layout.PerWorkspace
 import XMonad.Layout.Spacing
 import qualified XMonad.Layout.MultiToggle as MT (Toggle(..))
 
@@ -59,6 +65,7 @@ import Control.Arrow (first)
 
     -- Utilities
 import XMonad.Util.EZConfig
+import XMonad.Util.NamedActions
 import XMonad.Util.NamedScratchpad
 import XMonad.Util.Run
 import XMonad.Util.SpawnOnce
@@ -70,6 +77,10 @@ import XMonad.Util.SpawnOnce
 myBrowser       = "firefox" -- Set default browser
 myFilemngr      = "vifmrun" -- Set default file manager
 myFont          = "xft:Agave:pixelsize=14" -- Set font
+mySpacing       :: Int
+mySpacing       = 5 -- Set gaps
+noSpacing       :: Int
+noSpacing       = 0 -- Set nogaps
 myTerminal      = "kitty " -- Set default terminal
 myTextEditor    = "nvim" -- Set default text editor
 windowCount :: X (Maybe String)
@@ -241,67 +252,74 @@ myManageHook = composeAll
     [ className =? "lutris"         --> doFloat
     , resource  =? "desktop_window" --> doIgnore
     , resource  =? "kdesktop"       --> doIgnore ]
-
--------------------------------------------------------------------------------
--- Event handling
-
--- * EwmhDesktops users should change this to ewmhDesktopsEventHook
---
--- Defines a custom handler function for X Events. The function should
--- return (All True) if the default handler is to be run afterwards. To
--- combine event hooks use mappend or mconcat from Data.Monoid.
---
-myEventHook = mempty
+        where
+            role = stringProperty "WM_WINDOW_ROLE"
 
 -------------------------------------------------------------------------------
 -- Autostart:
 -------------------------------------------------------------------------------
-myStartupHook :: X ()
+-- myStartupHook :: X ()
 myStartupHook = do
-    spawnOnce "feh --bg-scale --no-fehbg ~/Pictures/Backgrounds/forest.png &"
-    spawnOnce "flameshot &"
-    spawnOnce "picom --experimental-backends &"
-    -- spawnOnce "~/.config/polybar/launch.sh"
+    setWMName "ShadoWM"
+    spawn "feh --bg-scale --no-fehbg $HOME/Pictures/Backgrounds/forest.png &"
+    spawn "flameshot &"
+    spawn "picom --experimental-backends &"
+    spawn "polybar -c=~/.config/polybar/config-xmonad shadobar"
+
+-------------------------------------------------------------------------------
+-- Main:
+-------------------------------------------------------------------------------
+main :: IO ()
+main = do
+    dbus <- D.connectSession
+    D.requestName dbus (D.busName_ "org.xmonad.Log")
+        [D.nameAllowReplacement, D.nameReplaceExisting, D.nameDoNotQueue]
+
+    xmonad 
+        $ dynamicProjects projects
+        $ withUrgencyHook NoUrgencyHook 
+        $ ewmh 
+        $ myConfig { logHook = dynamicLogWithPP (myLogHook dbus) } -- , startupHook = spawn "polybar-msg cmd restart" }
+
+    -- xmonad { logHook = dynamicLogWithPP (myLogHook dbus)} -- docks myConfig
+    -- xmproc <- spawnPipe "xmobar -x 0 ~/.config/xmobar/xmobarrc"
+-------------------------------------------------------------------------------
+-- Loghook:
+-------------------------------------------------------------------------------
+-- Override the PP values as you would otherwise, adding colors etc depending on  the statusbar used
+myLogHook :: D.Client -> PP
+myLogHook dbus = def
+    { ppOutput = dbusOutput dbus
+    , ppCurrent = wrap ("%{F" ++ cPurpBlue ++ "} ") " %{F-}"
+    , ppVisible = wrap ("%{F" ++ cBlue ++ "} ") " %{F-}"
+    , ppUrgent = wrap ("%{F" ++ cRed ++ "} ") " %{F-}"
+    , ppHidden = wrap " " " "
+    , ppWsSep = ""
+    , ppSep = " | "
+    , ppTitle = myAddSpaces 25
+    }
+
+-- Emit a DBus signal on log updates
+dbusOutput :: D.Client -> String -> IO ()
+dbusOutput dbus str = do
+    let signal = (D.signal objectPath interfaceName memberName) {
+            D.signalBody = [D.toVariant $ UTF8.decodeString str]
+        }
+    D.emit dbus signal
+  where
+    objectPath = D.objectPath_ "/org/xmonad/Log"
+    interfaceName = D.interfaceName_ "org.xmonad.Log"
+    memberName = D.memberName_ "Update"
+
+myAddSpaces :: Int -> String -> String
+myAddSpaces len str = sstr ++ replicate (len - length sstr) ' '
+  where
+    sstr = shorten len str
 
 -------------------------------------------------------------------------------
 -- Defaults:
 -------------------------------------------------------------------------------
-main = do
-    -- dbus <- D.connectSession
-    -- D.requestName dbus (D.busName_ "org.xmonad.Log")
-        -- [D.nameAllowReplacement, D.nameReplaceExisting, D.nameDoNotQueue]
-    xmonad $  def -- { logHook = dynamicLogWithPP (myLogHook dbus)} -- docks defaults
-    -- xmonad . withUrgencyHook NoUrgencyHook . withNavigation2DConfig defaultNavigation2DConfig . ewmh . docks $
-        -- defaults
-        --     { logHook = dynamicLogWithPP (myLogHook dbus) , startupHook = spawn "polybar-msg cmd restart" }
-    -- xmproc <- spawnPipe "xmobar -x 0 ~/.config/xmobar/xmobarrc"
-
--- Override the PP values as you would otherwise, adding colors etc depending on  the statusbar used
--- myLogHook :: D.Client -> PP
--- myLogHook dbus = def 
---     { ppOutput = dbusOutput dbus 
---     , ppCurrent = wrap ("%{B" ++ bg ++ "} ") " %{B-}"
---     , ppVisible = wrap ("%{B" ++ bg ++ "} ") " %{B-}"
---     , ppUrgent = wrap ("%{F" ++ cRed ++ "} ") " %{F-}"
---     , ppHidden = wrap " " " "
---     , ppWsSep = ""
---     , ppSep = " : "
---     , ppTitle = shorten 40
---     }
-
--- -- Emit a DBus signal on log updates
--- dbusOutput :: D.Client -> String -> IO ()
--- dbusOutput dbus str = do
---     let signal = (D.signal objectPath interfaceName memberName) {
---         D.signalBody = [D.toVariant $ UTF8.decodeString str]
---     }
---     D.emit dbus signal
---     where
---         objectPath = D.objectPath_ "/org/xmonad/Log"
---         interfaceName = D.interfaceName_ "org.xmonad.Log"
---         memberName = D.memberName_ "Update"
-
-defaults = def {
+myConfig = def {
         -- Base
     terminal           = myTerminal,
     focusFollowsMouse  = myFocusFollowsMouse,
@@ -316,13 +334,15 @@ defaults = def {
     mouseBindings      = myMouseBindings,
         -- Hooks/Layouts
     layoutHook         = myLayout,
-    -- manageHook = placeHook (smart (0.5, 0.5))
-    --             <+> manageDocks
-    --             <+> myManageHook
-    --             <+> manageHook def,
-    manageHook         = myManageHook,
+    manageHook         = placeHook (smart (0.5, 0.5))
+                        <+> manageDocks
+                        <+> myManageHook
+                        <+> manageHook def,
+    -- manageHook         = myManageHook,
     -- logHook            = myLogHook,
-    handleEventHook    = myEventHook,
+    handleEventHook    = docksEventHook
+                        <+> minimizeEventHook
+                        <+> fullscreenEventHook,
     startupHook        = myStartupHook
 }
 
@@ -466,3 +486,28 @@ myScratchPads = [ NS "terminal" spawnTerm findTerm manageTerm
                        t = 0.95 -h
                        l = 0.95 -w
 
+-----------------------------------------------------------------------------}}}
+-- PROJECTS                                                                  {{{
+--------------------------------------------------------------------------------
+projects :: [Project]
+projects =
+  [ Project { projectName      = "study"
+            , projectDirectory = "~/Documents/"
+            , projectStartHook = Just $ do spawn myTerminal
+            }
+  , Project { projectName      = "term"
+            , projectDirectory = "~/Documents/"
+            , projectStartHook = Just $ do spawn myBrowser
+                                           spawn myTerminal
+            }
+  , Project { projectName      = "program"
+            , projectDirectory = "~/Documents/"
+            , projectStartHook = Just $ do spawn myBrowser
+            }
+  , Project { projectName      = "system"
+            , projectDirectory = "~/Documents/"
+            , projectStartHook = Just $ do spawn (myTerminal ++ "ncmpcpp")
+                                           spawn (myTerminal ++ "htop")
+            }
+
+  ]
