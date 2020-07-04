@@ -6,6 +6,8 @@
     --   fix xmonad-log finding workspaces
     --   change layouts
     --   change polybar
+    --   Fix up the example projects in there and make my own! 
+    --   also have some default apps open for certain workspaces!!!
 --- Imports --- {{{
 -------------------------------------------------------------------------------
 -- Imports:
