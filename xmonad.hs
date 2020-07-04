@@ -160,9 +160,10 @@ myManageHook = composeAll
 myStartupHook = do
     setWMName "ShadoWM"
     spawn "feh --bg-scale --no-fehbg $HOME/Pictures/Backgrounds/forest.png &"
-    spawn "flameshot &"
-    spawn "picom --experimental-backends &"
-    spawn "polybar -c ~/.config/polybar/config-xmonad shadobar"
+    spawn "killall flameshot; flameshot &"
+    spawn "killall flashfocus; flashfocus &"
+    spawn "killall picom; picom --experimental-backends &"
+    spawn "killall polybar; polybar -c ~/.config/polybar/config-xmonad shadobar"
 
 -------------------------------------------------------------------------------
 -- Main:
