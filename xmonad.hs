@@ -2,15 +2,13 @@
 -- Shadomonad Config --
 -------------------------------------------------------------------------------
 -- TODO: add some bindings
-    --   change workspace tags
     --   fix xmonad-log finding workspaces
     --   change layouts
     --   change polybar
     --   Fix up the example projects in there and make my own! 
     --   also have some default apps open for certain workspaces!!!
---- Imports --- {{{
 -------------------------------------------------------------------------------
--- Imports:
+-- Imports: {{{
 -------------------------------------------------------------------------------
     -- Base
 import XMonad
@@ -50,17 +48,27 @@ import XMonad.Hooks.SetWMName
 import XMonad.Hooks.UrgencyHook
 
     -- Layouts
+import XMonad hiding ( (|||) )
+import XMonad.Layout.Accordion
+import XMonad.Layout.BinarySpacePartition
+import XMonad.Layout.NoFrillsDecoration
 import XMonad.Layout.ResizableTile
 import XMonad.Layout.Spiral
+import XMonad.Layout.SubLayouts
 import XMonad.Layout.Tabbed
 import XMonad.Layout.ThreeColumns
 
     -- Layout Mods
+import XMonad.Layout.Decoration
+import XMonad.Layout.Gaps
 import XMonad.Layout.LayoutModifier
+import XMonad.Layout.Master
 import XMonad.Layout.MultiToggle (mkToggle, single, EOT(EOT), (??))
 import XMonad.Layout.MultiToggle.Instances (StdTransformers(NBFULL, MIRROR, NOBORDERS))
 import XMonad.Layout.NoBorders
 import XMonad.Layout.PerWorkspace
+import XMonad.Layout.Renamed
+import XMonad.Layout.Simplest
 import XMonad.Layout.Spacing
 import qualified XMonad.Layout.MultiToggle as MT (Toggle(..))
 
@@ -73,20 +81,21 @@ import XMonad.Prompt.Shell (shellPrompt)
 import Control.Arrow (first)
 
     -- Utilities
+import XMonad.Util.Cursor
+import XMonad.Util.CustomKeys
 import XMonad.Util.EZConfig
 import XMonad.Util.NamedActions
 import XMonad.Util.NamedScratchpad
 import XMonad.Util.Run
 import XMonad.Util.SpawnOnce
----}}}
---- Defaults --- {{{
--------------------------------------------------------------------------------
--- Variables:
+----------------------------------------------------------------------------}}}
+-- Variables: {{{
 -------------------------------------------------------------------------------
     -- Base
 myBrowser       = "firefox" -- Set default browser
 myFilemngr      = "vifmrun" -- Set default file manager
 myFont          = "xft:Agave:pixelsize=14" -- Set font
+myLauncher      = "dmenu_run -fn 'Agave:size=15' -nb '#1B1B29' -nf '#8897F4' -sb '#2F2F4A' -sf '#ff79c6'" -- Set font
 mySpacing       :: Int
 mySpacing       = 5 -- Set gaps
 noSpacing       :: Int
@@ -97,24 +106,10 @@ windowCount :: X (Maybe String)
 windowCount     = gets $ Just . show . length . W.integrate' . W.stack . W.workspace . W.current . windowset -- Get count of windows in selected workspace
 
     -- Borders
-myBorderWidth   = 3
-myNormalBorderColor  = "##8897F4"
+myBorderWidth   = 0
+myNormalBorderColor  = "#8897F4"
 myFocusedBorderColor = "#9188ff"
 
-    -- Colors
-fg = "#c6b3e6"
-bg = "#09090d"
-cRed = "#f0416d"
-cPurp = "#e1acff"
-cBlue = "#2384de"
-cPurpBlue = "#9188ff"
-cPink = "#ff79c6"
-cMint = "#23dea9"
-cTeal = "#87b0d6"
-
-cNormal = "#37d4a7"
-cWarning = "#c9083f"
-    
     -- Focus
 myFocusFollowsMouse :: Bool
 myFocusFollowsMouse = True -- Whether focus follows the mouse pointer.
@@ -123,28 +118,100 @@ myClickJustFocuses = False -- Whether clicking on a window to focus also passes 
 
     -- Mod Masks
 myModMask       = mod1Mask -- Default Modkey (Alt)
-supModMask      = mod4Mask -- Super Key
+sModMask        = mod4Mask -- Super Key
+bModMask        = mod4Mask -- Backslash Key
 
     -- Workspaces
--- > workspaces = ["web", "irc", "code" ] ++ map show [4..9]
-myWorkspaces    = ["1","2","3","4","5","6","7","8","9"]
---}}}
---- Main Configuration --- {{{
+ws1 = "一"
+ws2 = "二"
+ws3 = "三"
+ws4 = "四"
+ws5 = "五"
+ws6 = "六"
+ws7 = "七"
+ws8 = "八"
+ws9 = "九"
+myWorkspaces    = [ws1,ws2,ws3,ws4,ws5,ws6,ws7,ws8,ws9] -- ++ map show [1..9]
+----------------------------------------------------------------------------}}}
+-- Themes: {{{
 -------------------------------------------------------------------------------
--- Layouts:
+    -- Colors
+fg        = "#BFAAE3"
+bg        = "#09090d"
+bgGray    = "#1B1B29"
+cGray     = "#073642"
+cRed      = "#f0416d"
+cPurp     = "#e1acff"
+cBlue     = "#2384de"
+cPurpBlue = "#9188ff"
+cPink     = "#ff79c6"
+cMint     = "#23dea9"
+cTeal     = "#87b0d6"
+cMagenta  = "#d33682"
+cViolet   = "#6c71c4"
+cSkyBlue  = "#268bd2"
+cCyan     = "#2aa198"
+cNormal   = "#37d4a7"
+cWarning  = "#c9083f"
+
+active       = cPurpBlue
+activeWarn   = cRed
+inactive     = cGray
+focusColor   = cPurpBlue
+unfocusColor = cGray
+
+gap = 5
+topbar = 5
+
+overLineTheme = def
+    { fontName            = myFont
+    , inactiveBorderColor = cGray
+    , inactiveColor       = cGray
+    , inactiveTextColor   = cGray
+    , activeBorderColor   = active
+    , activeTextColor     = active
+    , activeColor         = active
+    , urgentBorderColor   = cWarning
+    , urgentTextColor     = cPink
+    , decoHeight          = topbar
+    }
+
+myTabTheme = def 
+    { fontName            = myFont 
+    , activeColor         = active
+    , inactiveColor       = cGray
+    , activeBorderColor   = active
+    , inactiveBorderColor = cGray
+    , activeTextColor     = fg
+    , inactiveTextColor   = cTeal
+    }
+----------------------------------------------------------------------------}}}
+-- Layouts: {{{
 -------------------------------------------------------------------------------
 mySpacing' :: Integer -> l a -> XMonad.Layout.LayoutModifier.ModifiedLayout Spacing l a
 mySpacing' i = spacingRaw True (Border i i i i) True (Border i i i i) True
--- mySpacing' 8
-myLayout = avoidStruts (tiled ||| Mirror tiled ||| Full)
-  where
-     tiled   = Tall nmaster delta ratio -- Master/Stack
-     nmaster = 1 -- Default master count
-     ratio   = 1/2 -- Default size ratio of master:stack size
-     delta   = 3/100 -- Percent of screen inc/dec when resizing
 
--------------------------------------------------------------------------------
--- Window rules:
+myLayoutHook = avoidStruts (tiled ||| Mirror tiled ||| Full ||| masterTabbed) -- avoidStruts (tiled ||| Mirror tiled ||| Full)
+  where
+    tiled   = Tall nmaster delta ratio -- Master/Stack
+    nmaster = 1 -- Default master count
+    ratio   = 1/2 -- Default size ratio of master:stack size
+    delta   = 3/100 -- Percent of screen inc/dec when resizing
+    named n     = renamed [(XMonad.Layout.Renamed.Replace n)]
+    addOverline = noFrillsDeco shrinkText overLineTheme
+    mySpacing   = spacing gap
+    myGaps      = gaps [(U, gap),(D, gap),(L,gap),(R,gap)]
+
+    masterTabbed    = named "M Tab"
+        $ addOverline
+        $ avoidStruts
+        $ mySpacing
+        $ myGaps
+        $ mastered (1/100) (1/2)
+        $ tabbed shrinkText myTabTheme
+
+----------------------------------------------------------------------------}}}
+-- Window rules: {{{
 -------------------------------------------------------------------------------
 myManageHook = composeAll
     [ className =? "lutris"         --> doFloat
@@ -153,8 +220,8 @@ myManageHook = composeAll
         where
             role = stringProperty "WM_WINDOW_ROLE"
 
--------------------------------------------------------------------------------
--- Autostart:
+----------------------------------------------------------------------------}}}
+-- Autostart: {{{
 -------------------------------------------------------------------------------
 -- myStartupHook :: X ()
 myStartupHook = do
@@ -164,9 +231,12 @@ myStartupHook = do
     spawn "killall flashfocus; flashfocus &"
     spawn "killall picom; picom --experimental-backends &"
     spawn "killall polybar; polybar -c ~/.config/polybar/config-xmonad shadobar"
+    spawn "xcape -e 'Hyper_L=Tab;Hyper_R=backslash'"
+    
+    setDefaultCursor xC_left_ptr
 
--------------------------------------------------------------------------------
--- Main:
+----------------------------------------------------------------------------}}}
+-- Main: {{{
 -------------------------------------------------------------------------------
 main :: IO ()
 main = do
@@ -182,8 +252,8 @@ main = do
 
     -- xmonad { logHook = dynamicLogWithPP (myLogHook dbus)} -- docks myConfig
     -- xmproc <- spawnPipe "xmobar -x 0 ~/.config/xmobar/xmobarrc"
--------------------------------------------------------------------------------
--- Loghook:
+----------------------------------------------------------------------------}}}
+-- Loghook: {{{
 -------------------------------------------------------------------------------
 -- Override the PP values as you would otherwise, adding colors etc depending on  the statusbar used
 myLogHook :: D.Client -> PP
@@ -215,8 +285,8 @@ myAddSpaces len str = sstr ++ replicate (len - length sstr) ' '
   where
     sstr = shorten len str
 
--------------------------------------------------------------------------------
--- Defaults:
+----------------------------------------------------------------------------}}}
+-- Defaults: {{{
 -------------------------------------------------------------------------------
 myConfig = def {
         -- Base
@@ -232,31 +302,28 @@ myConfig = def {
     keys               = myKeys,
     mouseBindings      = myMouseBindings,
         -- Hooks/Layouts
-    layoutHook         = myLayout,
+    layoutHook         = myLayoutHook,
     manageHook         = placeHook (smart (0.5, 0.5))
                         <+> manageDocks
                         <+> myManageHook
                         <+> manageHook def,
-    -- manageHook         = myManageHook,
     -- logHook            = myLogHook,
     handleEventHook    = docksEventHook
                         <+> minimizeEventHook
                         <+> fullscreenEventHook,
     startupHook        = myStartupHook
 }
---}}}
---- Custom Modules --- {{{
---------------------------------------------------------------------------------
--- Xprompt:
+-----------------------------------------------------------------------------}}}
+-- Xprompt: {{{
 --------------------------------------------------------------------------------
 shXPConfig :: XPConfig
 shXPConfig = def
-    { font          = myFont
-    , bgColor       = "#292d3e"
-    , fgColor             = "#d0d0d0"
-    , bgHLight            = "#c792ea"
+    { font                = myFont
+    , bgColor             = "#1B1B29"
+    , fgColor             = "#BFAAE3"
+    , bgHLight            = cPurpBlue
     , fgHLight            = "#000000"
-    , borderColor         = "#535974"
+    , borderColor         = "#9188ff"
     , promptBorderWidth   = 0
     , promptKeymap        = shXPKeymap
     , position            = Top
@@ -274,8 +341,8 @@ shXPConfig = def
 shXPConfig' :: XPConfig
 shXPConfig' = shXPConfig { autoComplete = Nothing }
 
-------------------------------------------------------------------------
--- Xprompt Keymap:
+---------------------------------------------------------------------}}}
+-- Xprompt Keymap: {{{
 ------------------------------------------------------------------------
 shXPKeymap :: M.Map (KeyMask,KeySym) (XP ())
 shXPKeymap = M.fromList $
@@ -293,7 +360,7 @@ shXPKeymap = M.fromList $
      , (xK_bracketleft, quit)
      ]
      ++
-     map (first $ (,) supModMask)    -- meta key + <key>
+     map (first $ (,) sModMask)    -- meta key + <key>
      [ (xK_BackSpace, killWord Prev) -- kill the prev word
      , (xK_f, moveWord Next)         -- move a word forward
      , (xK_b, moveWord Prev)         -- move a word backward
@@ -316,21 +383,21 @@ shXPKeymap = M.fromList $
      , (xK_Escape, quit)
      ]
 
+-----------------------------------------------------------------------------}}}
+-- Grid Select: {{{
 --------------------------------------------------------------------------------
--- Grid Select:
---------------------------------------------------------------------------------
-myColorizer :: Window -> Bool -> X (String, String)
-myColorizer = colorRangeFromClassName
-                  (0x29,0x2d,0x3e) -- lowest inactive bg
-                  (0x29,0x2d,0x3e) -- highest inactive bg
-                  (0xc7,0x92,0xea) -- active bg
-                  (0xc0,0xa7,0x9a) -- inactive fg
-                  (0x29,0x2d,0x3e) -- active fg
+myGridTheme :: Window -> Bool -> X (String, String)
+myGridTheme = colorRangeFromClassName
+                  (0x1B,0x1B,0x29) -- lowest inactive bg
+                  (0x1B,0x1B,0x29) -- highest inactive bg
+                  (0x2F,0x2F,0x4A) -- active bg
+                  (0xBD,0x93,0xF9) -- inactive fg
+                  (0xFF,0x79,0xC6) -- active fg
 
-mygridConfig colorizer = (buildDefaultGSConfig myColorizer)
-    { gs_cellheight   = 30
-    , gs_cellwidth    = 200
-    , gs_cellpadding  = 8
+mygridConfig colorizer = (buildDefaultGSConfig myGridTheme)
+    { gs_cellheight   = 40
+    , gs_cellwidth    = 300
+    , gs_cellpadding  = 15
     , gs_originFractX = 0.5
     , gs_originFractY = 0.5
     , gs_font         = myFont
@@ -352,8 +419,8 @@ myApplications = [
         , ("Dolphin", "dolphin", "GUI File manager")
         ]
 
---------------------------------------------------------------------------------
--- Search Engines:
+-----------------------------------------------------------------------------}}}
+-- Search Engines: {{{
 --------------------------------------------------------------------------------
 archwiki, reddit, cppref :: S.SearchEngine
 
@@ -361,8 +428,8 @@ archwiki = S.searchEngine "archwiki" "https://wiki.archlinux.org/index.php?searc
 reddit   = S.searchEngine "reddit"   "https://www.reddit.com/search?q="
 cppref   = S.searchEngine "cppref"   "https://en.cppreference.com/mwiki/index.php?search="
 
--------------------------------------------------------------------------------
--- Named Scratchpads:
+----------------------------------------------------------------------------}}}
+-- Named Scratchpads: {{{
 -------------------------------------------------------------------------------
 myScratchPads :: [NamedScratchpad]
 myScratchPads = [ NS "terminal" spawnTerm findTerm manageTerm
@@ -386,8 +453,8 @@ myScratchPads = [ NS "terminal" spawnTerm findTerm manageTerm
                        t = 0.95 -h
                        l = 0.95 -w
 
--------------------------------------------------------------------------------
--- Projects:
+----------------------------------------------------------------------------}}}
+-- Projects: {{{
 -------------------------------------------------------------------------------
 projects :: [Project]
 projects =
@@ -411,28 +478,26 @@ projects =
             }
 
   ]
---}}}
---- Binds --- {{{
--------------------------------------------------------------------------------
--- Key Bindings:
+----------------------------------------------------------------------------}}}
+-- Key Bindings: {{{
 -------------------------------------------------------------------------------
 myKeys :: XConfig Layout -> M.Map (KeyMask, KeySym) (X ())
 myKeys conf@(XConfig {XMonad.modMask = modm}) = M.fromList $
-        -- Xmonad
+        -- Xmonad ---------------------------------------------------------------------------------
     [ ((modm .|. controlMask,   xK_q     ), io (exitWith ExitSuccess)                   ) -- Quit
     , ((modm,                   xK_q     ), spawn "xmonad --recompile; xmonad --restart") -- Restart
     , ((mod4Mask.|.controlMask, xK_F12   ), spawn "~/.config/scripts/switch_gpu"        ) -- Switch GPU
     , ((modm .|. controlMask,   xK_b     ), spawn "killall polybar; polybar -c ~/.config/polybar/config-xmonad shadobar") -- Restart polybar
-        -- Base
+        -- Base -----------------------------------------------------------------------------------
     , ((modm .|. shiftMask,     xK_Return), spawn $ XMonad.terminal conf                ) -- Terminal
-    , ((modm,                   xK_p     ), spawn "dmenu_run"                           ) -- Dmenu
+    , ((modm,                   xK_p     ), spawn myLauncher                            ) -- Dmenu
     , ((modm,                   xK_b     ), sendMessage ToggleStruts >> spawn "polybar-msg cmd toggle") -- Toggle Bar
     , ((modm .|. shiftMask,     xK_b     ), sendMessage $ (MT.Toggle NOBORDERS)         ) -- Toggle Borders
-        -- Layout
+        -- Layout ---------------------------------------------------------------------------------
     , ((modm,                   xK_space ), sendMessage NextLayout                      ) -- Rotate available layouts
     , ((modm .|. shiftMask,     xK_space ), setLayout $ XMonad.layoutHook conf          ) -- Reset layouts on current workspace
     , ((modm,                   xK_f     ), sendMessage (MT.Toggle NBFULL) >> sendMessage ToggleStruts >> spawn "polybar-msg cmd toggle") -- Toggles Fullscreen
-        -- Windows
+        -- Windows --------------------------------------------------------------------------------
     , ((modm .|. shiftMask, xK_c     ), kill                                            ) -- close window
     , ((modm,                   xK_n     ), refresh                                     ) -- Resize viewed windows to the correct size
     , ((modm,                   xK_Tab   ), windows W.focusDown                         ) -- Focus next
@@ -449,10 +514,10 @@ myKeys conf@(XConfig {XMonad.modMask = modm}) = M.fromList $
     , ((modm,                   xK_bracketleft), sendMessage (IncMasterN (-1))          ) -- Deincrement num of windows in master area
     , ((modm,                   xK_comma ), nextScreen                                  ) -- Focus next mon
     , ((modm,                   xK_period), prevScreen                                  ) -- Focus prev mon
-        -- Scratchpads
+        -- Scratchpads ----------------------------------------------------------------------------
     , ((modm,                   xK_s), namedScratchpadAction myScratchPads "terminal"   ) -- Terminal Scrtchpd
     , ((modm .|. shiftMask,     xK_s), namedScratchpadAction myScratchPads "ncmpcpp"    ) -- Ncmpcpp Scrtchpd
-        -- Multimedia (Volume, MPD)
+        -- Multimedia (Volume, MPD) ---------------------------------------------------------------
     , ((0,                      0x1008FF11), spawn "pulsemixer --change-volume -2"      ) -- Volume Down 
     , ((0,                      0x1008FF13), spawn "pulsemixer --change-volume +2"      ) -- Volume Up
     , ((0,                      0x1008FF12), spawn "pulsemixer --toggle-mute"           ) -- Mute
@@ -464,7 +529,7 @@ myKeys conf@(XConfig {XMonad.modMask = modm}) = M.fromList $
     , ((0,                      0x1008FF02), spawn "xbacklight -inc 5"                  ) -- Inc Brightness
     , ((0,                      0x1008FF03), spawn "xbacklight -dec 5"                  ) -- Dec Brightness
 
-        -- Open Applications
+        -- Open Applications -------------------------------------------------------------------------------------
     , ((mod4Mask,                   xK_b      ), spawn myBrowser                                         ) -- Browser
     , ((mod4Mask .|. controlMask,   xK_m      ), spawn (myTerminal ++ "calcurse")                        ) -- Calcurse
     , ((mod4Mask .|. shiftMask,     xK_d      ), spawn "discord"                                         ) -- Discord
@@ -474,16 +539,16 @@ myKeys conf@(XConfig {XMonad.modMask = modm}) = M.fromList $
     , ((mod4Mask,                   xK_w      ), spawn (myTerminal ++ "nmtui")                           ) -- Netork
     , ((mod4Mask,                   xK_p      ), spawn (myTerminal ++ "htop")                            ) -- Processes
     , ((mod4Mask,                   xK_s      ), spawn "~/.config/rofi/scripts/menu_powermenu.sh"        ) -- Processes
-        -- Screenshots
+        -- Screenshots -------------------------------------------------------------------------------------------
     , ((shiftMask .|. controlMask,  xK_Print  ), spawn "flameshot gui -p ~/Pictures/Screenshots"         ) -- Area
     , ((0,                          xK_Print  ), spawn "scrot '~/Pictures/Screenshots/%F_%T.png'"        ) -- Fullscreen
     , ((mod4Mask .|. modm,          xK_Print  ), spawn "flameshot screen -r -c -p ~/Pictures/Screenshots") -- Monitor
     , ((controlMask,                xK_Print  ), spawn "scrot -u '~/Pictures/Screenshots'"               ) -- Window
-        -- Grid Select
-    , ((modm,                       xK_g      ), goToSelected $ mygridConfig myColorizer                 ) -- Go to grid item
-    , ((modm .|. shiftMask,         xK_g      ), bringSelected $ mygridConfig myColorizer                ) -- Grab and brind over grid item
+        -- Grid Select -------------------------------------------------------------------------------------------
+    , ((modm,                       xK_g      ), goToSelected $ mygridConfig myGridTheme                 ) -- Go to grid item
+    , ((modm .|. shiftMask,         xK_g      ), bringSelected $ mygridConfig myGridTheme                ) -- Grab and brind over grid item
     , ((modm .|. controlMask,       xK_g      ), spawnSelected' myAppGrid                                ) -- Custom program list
-        -- Search Engine
+        -- Search Engine -----------------------------------------------------------------------------------------
     , ((modm,               xK_slash), SM.submap $ searchEngineMap $ promptSearch shXPConfig'            ) -- Searches via prompt
     , ((modm .|. shiftMask, xK_slash), SM.submap $ searchEngineMap $ selectSearch                        ) -- Searches via clipboard
     ]
@@ -512,8 +577,8 @@ myKeys conf@(XConfig {XMonad.modMask = modm}) = M.fromList $
              , ((0, xK_z), method S.amazon)
              ]
 
-------------------------------------------------------------------------
--- Mouse bindings:
+---------------------------------------------------------------------}}}
+-- Mouse bindings: {{{
 ------------------------------------------------------------------------
 myMouseBindings (XConfig {XMonad.modMask = modm}) = M.fromList $
     -- mod-button1, Set the window to floating mode and move by dragging
@@ -525,3 +590,4 @@ myMouseBindings (XConfig {XMonad.modMask = modm}) = M.fromList $
     -- you may also bind events to the mouse scroll wheel (button4 and button5)
     ]
 --}}}
+-------------------------------------------------------------------------------

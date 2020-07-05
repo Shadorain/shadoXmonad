@@ -240,6 +240,7 @@ import XMonad.Layout.NoBorders
 -- import System.Taffybar.Hooks.PagerHints (pagerHints)
 -- to demo and comment out or remove
 -- import XMonad.Layout.Master -- used to test a dynamic layout. worked, but will remove in lieu of sublayouts
+    --             normalScreen = smartTall ***||** smartTabbed
 -- import XMonad.Actions.CycleSelectedLayouts -- nice but doesn't work well with sublayouts
 -- import XMonad.Actions.Plane
 -- import XMonad.Layout.IndependentScreens
@@ -425,7 +426,7 @@ myLauncher          = "rofi -matching fuzzy -modi combi -show combi -combi-modi 
 
 -- TODO: change this to a lookup for all workspaces
 hangoutsCommand     = myBrowser ++ " --app-id=knipolnnllmklapflnccelgolnpehhpl"
-hangoutsTitle     = "Google Hangouts - es@ethanschoonover.com"
+hangoutsTitle       = "Google Hangouts - es@ethanschoonover.com"
 hangoutsPrefix      = "Google Hangouts"
 hangoutsResource    = "crx_nckgahadagoaajjgafhacjanaoiihapd"
 isHangoutsFor s     = (className =? myBrowserClass
@@ -623,7 +624,6 @@ myLayoutHook = showWorkspaceName
     mirrorToggle        = mkToggle (single MIRROR)
     reflectToggle       = mkToggle (single REFLECTX)
     smallMonResWidth    = 1920
-    showWorkspaceName   = showWName' myShowWNameTheme
 
     named n             = renamed [(XMonad.Layout.Renamed.Replace n)]
     trimNamed w n       = renamed [(XMonad.Layout.Renamed.CutWordsLeft w),
@@ -643,7 +643,6 @@ myLayoutHook = showWorkspaceName
     --------------------------------------------------------------------------
     -- Tabs Layout                                                          --
     --------------------------------------------------------------------------
-
     threeCol = named "Unflexed"
          $ avoidStruts
          $ addTopBar
