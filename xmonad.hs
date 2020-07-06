@@ -7,6 +7,7 @@
     --   change polybar
     --   Fix up the example projects in there and make my own! 
     --   also have some default apps open for certain workspaces!!!
+    --   fix tabbing
 -------------------------------------------------------------------------------
 -- Imports: {{{
 -------------------------------------------------------------------------------
@@ -25,6 +26,7 @@ import XMonad.Actions.GridSelect
 import XMonad.Actions.Navigation2D
 import XMonad.Actions.Submap           as SM
 import XMonad.Actions.Search
+import XMonad.Actions.WorkspaceNames
 import qualified XMonad.Actions.Search as S
 
     -- Data
@@ -61,6 +63,7 @@ import XMonad.Layout.ThreeColumns
     -- Layout Mods
 import XMonad.Layout.Decoration
 import XMonad.Layout.Gaps
+import XMonad.Layout.IndependentScreens
 import XMonad.Layout.LayoutModifier
 import XMonad.Layout.Master
 import XMonad.Layout.MultiToggle (mkToggle, single, EOT(EOT), (??))
@@ -83,7 +86,6 @@ import Control.Arrow (first)
     -- Utilities
 import XMonad.Util.Cursor
 import XMonad.Util.CustomKeys
-import XMonad.Util.EZConfig
 import XMonad.Util.NamedActions
 import XMonad.Util.NamedScratchpad
 import XMonad.Util.Run
@@ -122,17 +124,47 @@ sModMask        = mod4Mask -- Super Key
 bModMask        = mod4Mask -- Backslash Key
 
     -- Workspaces
-ws1 = "一"
-ws2 = "二"
-ws3 = "三"
-ws4 = "四"
-ws5 = "五"
-ws6 = "六"
-ws7 = "七"
-ws8 = "八"
-ws9 = "九"
-myWorkspaces    = [ws1,ws2,ws3,ws4,ws5,ws6,ws7,ws8,ws9] -- ++ map show [1..9]
+-- Mon 1
+m0ws1 = "一" -- m1ws1 = "src" -- " " -- Browser
+m0ws2 = "二" -- m1ws2 = "wrk" -- " " -- Work
+m0ws3 = "三" -- m1ws3 = "com" -- "ﭮ " -- Discord
+m0ws4 = "四" -- m1ws4 = "prj" -- " " -- Projects
+m0ws5 = "五" -- m1ws5 = "sys" -- " " -- System
+m0ws6 = "六" -- m1ws6 = "dev" -- " " -- Dev
+m0ws7 = "七" -- m1ws7 = "hsk" -- " " -- Haskell
+m0ws8 = "八" -- m1ws8 = "clg" -- " " -- C lang
+m0ws9 = "九" -- m1ws9 = "rev" -- " " -- Reversing
+
+myWorkspaces    = withScreens 2 [m0ws1,m0ws2,m0ws3,m0ws4,m0ws5,m0ws6,m0ws7,m0ws8,m0ws9]
 ----------------------------------------------------------------------------}}}
+-- Defaults: {{{
+-------------------------------------------------------------------------------
+myConfig = def {
+        -- Base
+    terminal           = myTerminal,
+    focusFollowsMouse  = myFocusFollowsMouse,
+    clickJustFocuses   = myClickJustFocuses,
+    borderWidth        = myBorderWidth,
+    modMask            = myModMask,
+    workspaces         = myWorkspaces,
+    normalBorderColor  = myNormalBorderColor,
+    focusedBorderColor = myFocusedBorderColor,
+        -- Keys
+    keys               = myKeys,
+    mouseBindings      = myMouseBindings,
+        -- Hooks/Layouts
+    layoutHook         = myLayoutHook,
+    manageHook         = placeHook (smart (0.5, 0.5))
+                        <+> manageDocks
+                        <+> myManageHook
+                        <+> manageHook def,
+    -- logHook            = myLogHook,
+    handleEventHook    = docksEventHook
+                        <+> minimizeEventHook
+                        <+> fullscreenEventHook,
+    startupHook        = myStartupHook
+}
+-----------------------------------------------------------------------------}}}
 -- Themes: {{{
 -------------------------------------------------------------------------------
     -- Colors
@@ -232,6 +264,7 @@ myStartupHook = do
     spawn "killall flashfocus; flashfocus &"
     spawn "killall picom; picom --experimental-backends &"
     spawn "killall polybar; polybar -c ~/.config/polybar/config-xmonad shadobar"
+    -- spawn "killall polybar; polybar -c ~/.config/polybar/config-xmonad shadobar2"
     spawn "xcape -e 'Hyper_L=Tab;Hyper_R=backslash'"
     
     setDefaultCursor xC_left_ptr
@@ -249,7 +282,7 @@ main = do
         $ dynamicProjects projects
         $ withUrgencyHook NoUrgencyHook 
         $ ewmh 
-        $ myConfig { logHook = dynamicLogWithPP (myLogHook dbus) } -- , startupHook = spawn "polybar-msg cmd restart" }
+        $ myConfig { logHook = dynamicLogWithPP (myLogHook dbus)} -- , startupHook = spawn "polybar-msg cmd restart" }
 
     -- xmonad { logHook = dynamicLogWithPP (myLogHook dbus)} -- docks myConfig
     -- xmproc <- spawnPipe "xmobar -x 0 ~/.config/xmobar/xmobarrc"
@@ -287,34 +320,6 @@ myAddSpaces len str = sstr ++ replicate (len - length sstr) ' '
     sstr = shorten len str
 
 ----------------------------------------------------------------------------}}}
--- Defaults: {{{
--------------------------------------------------------------------------------
-myConfig = def {
-        -- Base
-    terminal           = myTerminal,
-    focusFollowsMouse  = myFocusFollowsMouse,
-    clickJustFocuses   = myClickJustFocuses,
-    borderWidth        = myBorderWidth,
-    modMask            = myModMask,
-    workspaces         = myWorkspaces,
-    normalBorderColor  = myNormalBorderColor,
-    focusedBorderColor = myFocusedBorderColor,
-        -- Keys
-    keys               = myKeys,
-    mouseBindings      = myMouseBindings,
-        -- Hooks/Layouts
-    layoutHook         = myLayoutHook,
-    manageHook         = placeHook (smart (0.5, 0.5))
-                        <+> manageDocks
-                        <+> myManageHook
-                        <+> manageHook def,
-    -- logHook            = myLogHook,
-    handleEventHook    = docksEventHook
-                        <+> minimizeEventHook
-                        <+> fullscreenEventHook,
-    startupHook        = myStartupHook
-}
------------------------------------------------------------------------------}}}
 -- Xprompt: {{{
 --------------------------------------------------------------------------------
 shXPConfig :: XPConfig
@@ -554,8 +559,8 @@ myKeys conf@(XConfig {XMonad.modMask = modm}) = M.fromList $
     , ((modm .|. shiftMask, xK_slash), SM.submap $ searchEngineMap $ selectSearch                        ) -- Searches via clipboard
     ]
     ++
-    [((m .|. modm, k), windows $ f i)
-        | (i, k) <- zip (XMonad.workspaces conf) [xK_1 .. xK_9]
+    [((m .|. modm, k), windows $ onCurrentScreen f i)
+        | (i, k) <- zip (workspaces' conf) [xK_1 .. xK_9]
         , (f, m) <- [(W.greedyView, 0), (W.shift, shiftMask)]]
     ++
     -- mod-{w,e,r}, Switch to physical/Xinerama screens 1, 2, or 3 mod-shift-{w,e,r}, Move client to screen 1, 2, or 3
