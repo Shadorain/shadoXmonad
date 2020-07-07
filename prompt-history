@@ -1,1 +1,1 @@
-fromList [("Search [archwiki]: ",["hi"])]
+fromList [("Search [archwiki]: ",["hi"]),("Search [cppref]: ",["kill","hi"]),("Search [hoogle]: ",["Tabbed","bindOn","NextLayout","dynamiclog"])]

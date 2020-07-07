@@ -25,7 +25,6 @@ import XMonad.Actions.DynamicProjects
 import XMonad.Actions.DynamicWorkspaces
 import XMonad.Actions.GridSelect
 import XMonad.Actions.Navigation2D
-import XMonad.Actions.PerWorkspaceKeys
 import XMonad.Actions.Submap           as SM
 import XMonad.Actions.Search
 import XMonad.Actions.WorkspaceNames
@@ -92,7 +91,6 @@ import XMonad.Util.NamedActions
 import XMonad.Util.NamedScratchpad
 import XMonad.Util.Run
 import XMonad.Util.SpawnOnce
-import XMonad.Util.WorkspaceCompare
 ----------------------------------------------------------------------------}}}
 -- Variables: {{{
 -------------------------------------------------------------------------------
@@ -222,18 +220,10 @@ myTabTheme = def
 ----------------------------------------------------------------------------}}}
 -- Layouts: {{{
 -------------------------------------------------------------------------------
-myNav2DConf = def
-    { defaultTiledNavigation    = centerNavigation
-    , floatNavigation           = centerNavigation
-    , screenNavigation          = lineNavigation
-    , layoutNavigation          = [("Full",          centerNavigation)]
-    , unmappedWindowRect        = [("Full", singleWindowRect)]
-    }
-
 mySpacing' :: Integer -> l a -> XMonad.Layout.LayoutModifier.ModifiedLayout Spacing l a
 mySpacing' i = spacingRaw True (Border i i i i) True (Border i i i i) True
 
-myLayoutHook = avoidStruts (tiled ||| Mirror tiled ||| Full ||| masterTabbed ||| simpleTabbed)
+myLayoutHook = avoidStruts (tiled ||| Mirror tiled ||| Full ||| masterTabbed) -- avoidStruts (tiled ||| Mirror tiled ||| Full)
   where
     tiled   = Tall nmaster delta ratio -- Master/Stack
     nmaster = 1 -- Default master count
@@ -246,6 +236,7 @@ myLayoutHook = avoidStruts (tiled ||| Mirror tiled ||| Full ||| masterTabbed |||
 
     masterTabbed    = named "M Tab"
         $ addOverline
+        $ avoidStruts
         $ mySpacing
         $ myGaps
         $ mastered (1/100) (1/2)
@@ -289,7 +280,6 @@ main = do
 
     xmonad 
         $ dynamicProjects projects
-        $ withNavigation2DConfig myNav2DConf
         $ withUrgencyHook NoUrgencyHook 
         $ ewmh 
         $ myConfig { logHook = dynamicLogWithPP (myLogHook dbus), workspaces = withScreens nScreens [m0ws1,m0ws2,m0ws3,m0ws4,m0ws5,m0ws6,m0ws7,m0ws8,m0ws9] }
@@ -299,17 +289,17 @@ main = do
 -- Loghook: {{{
 -------------------------------------------------------------------------------
     -- Bar Customization
-screen1LogHook :: D.Client -> PP
-screen1LogHook dbus = def
+myLogHook :: D.Client -> PP
+myLogHook dbus = marshallPP 0 def
     { ppOutput = dbusOutput dbus
-    , ppCurrent          = wrap ("%{B#2f2f4a80}%{F" ++ cPink ++ "}%{o"++ cPurpBlue ++"}%{A4:xdotool key alt+shift+Right:}%{A5:xdotool key alt+shift+Left:}  ") "  %{A}%{A}%{-o}%{B- F-}" -- Focused wkspc
+    , ppCurrent          = wrap ("%{B#2f2f4a80}%{F" ++ cPink ++ "}%{o"++ cPurpBlue ++"}%{A4:xdotool key alt+shift+Right:}%{A5:xdotool key alt+shift+Left:} ") " %{A}%{A}%{-o}%{B- F-}" -- Focused wkspc
     , ppVisible          = wrap ("%{F" ++ cBlue ++ "} ") " %{F-}" -- not working
     , ppVisibleNoWindows = Just (wrap ("%{F" ++ cMagenta ++ "} ") " %{F-}") -- not working
     , ppUrgent           = wrap ("%{F" ++ cRed ++ "}%{A4:xdotool key alt+shift+Right:}%{A5:xdotool key alt+shift+Left:} ") " %{A}%{A}%{F-}" -- Urgent wkspc
     , ppHidden           = wrap ("%{F" ++ cPurpBlue ++ "}%{A4:xdotool key alt+shift+Right:}%{A5:xdotool key alt+shift+Left:} ") " %{A}%{A}%{F-}" -- Hidden with windows
     , ppHiddenNoWindows  = wrap ("%{F" ++ cEmpty ++ "}%{A4:xdotool key alt+shift+Right:}%{A5:xdotool key alt+shift+Left:} ") " %{A}%{A}%{F-}" -- Hidden and empty
     , ppWsSep            = ""
-    , ppSep              = " | "
+    , ppSep = " | "
     -- , ppTitle = myAddSpaces 25
     , ppLayout = \x -> case x of     -- Changes layout name to be displayed
                         "Tall" -> "%{A4:xdotool key alt+space:}%{A5:xdotool key alt+space:}T %{A}%{A}|"
@@ -331,14 +321,6 @@ dbusOutput dbus str = do
     objectPath = D.objectPath_ "/org/xmonad/Log"
     interfaceName = D.interfaceName_ "org.xmonad.Log"
     memberName = D.memberName_ "Update"
-
-myLogHook :: D.Client -> PP
-myLogHook dbus = (marshallPP 0 (screen1LogHook dbus)) 
-    { ppSort = selectScreen 0 (ppSort def) }
-
-selectScreen :: ScreenId -> X WorkspaceSort -> X WorkspaceSort
-selectScreen s = fmap (fmap (filter onScreen)) where
-    onScreen ws = unmarshallS (W.tag ws) == s
 
 -- myAddSpaces :: Int -> String -> String
 -- myAddSpaces len str = sstr ++ replicate (len - length sstr) ' '
@@ -533,11 +515,6 @@ myKeys conf@(XConfig {XMonad.modMask = modm}) = M.fromList $
         -- Workspaces -----------------------------------------------------------------------------
     , ((modm .|. shiftMask,     xK_Right ), nextWS                                      ) -- Cycle Right
     , ((modm .|. shiftMask,     xK_Left  ), prevWS                                      ) -- Cycle Left
-        -- Tabs -----------------------------------------------------------------------------------
-    , ((modm,                   xK_semicolon ), bindOn [("M Tab", windows W.focusUp),("", onGroup W.focusUp')]    ) -- Focus next tab up
-    , ((modm,                   xK_apostrophe), bindOn [("M Tab", windows W.focusDown),("", onGroup W.focusDown')]) -- Focus next tab down
-    , ((modm .|. shiftMask,     xK_semicolon ), windows W.swapUp                                                  ) -- Swap tab up
-    , ((modm .|. shiftMask,     xK_apostrophe), windows W.swapDown                                                ) -- Swap tab down
         -- Windows --------------------------------------------------------------------------------
     , ((modm .|. shiftMask,     xK_c     ), kill                                        ) -- close window
     , ((modm,                   xK_n     ), refresh                                     ) -- Resize viewed windows to the correct size
