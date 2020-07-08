@@ -66,7 +66,7 @@ import XMonad.Layout.ThreeColumns
 import XMonad.Layout.Decoration
 import XMonad.Layout.Gaps
 import XMonad.Layout.IndependentScreens
--- import XMonad.Layout.LayoutBuilder
+import XMonad.Layout.LayoutBuilder
 -- import XMonad.Layout.LayoutCombinators
 import XMonad.Layout.LayoutModifier
 import XMonad.Layout.Master
@@ -78,7 +78,7 @@ import XMonad.Layout.Renamed
 import XMonad.Layout.Simplest
 import XMonad.Layout.Spacing
 -- import XMonad.Layout.ToggleLayouts
-import XMonad.Layout.WindowNavigation
+-- import XMonad.Layout.WindowNavigation
 import qualified XMonad.Layout.MultiToggle as MT (Toggle(..))
 
     -- Prompts
@@ -237,7 +237,7 @@ myNav2DConf = def
 mySpacing' :: Integer -> l a -> XMonad.Layout.LayoutModifier.ModifiedLayout Spacing l a
 mySpacing' i = spacingRaw True (Border i i i i) True (Border i i i i) True
 
-myLayoutHook = avoidStruts(tiled ||| Mirror tiled ||| masterTabbed)
+myLayoutHook = avoidStruts(tiled ||| Mirror tiled) ||| masterTabbed
   where
     nmaster = 1 -- Default master count
     ratio   = 1/2 -- Default size ratio of master:stack size
@@ -284,7 +284,7 @@ myStartupHook = do
     spawn "killall picom; picom --experimental-backends &"
     spawn "killall polybar; polybar -c ~/.config/polybar/config-xmonad shadobar"
     -- spawn "killall polybar; polybar -c ~/.config/polybar/config-xmonad shadobar2"
-    spawn "xcape -e 'Hyper_L=Tab;Hyper_R=backslash'"
+    spawn "killall xcape; xcape -e 'Hyper_L=Tab;Hyper_R=backslash'"
     
     setDefaultCursor xC_left_ptr
 
