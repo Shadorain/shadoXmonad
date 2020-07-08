@@ -15,25 +15,28 @@ import XMonad
 import Data.Monoid
 import System.Exit
 import System.IO (hClose)
-import Graphics.X11.ExtraTypes.XF86
+-- import Graphics.X11.ExtraTypes.XF86
 import qualified XMonad.StackSet as W
 
     -- Actions
 import XMonad.Actions.CycleWS  --(moveTo, shiftTo, WSType(..), nextScreen, prevScreen)
+import XMonad.Actions.ConditionalKeys
 import XMonad.Actions.DynamicProjects
 import XMonad.Actions.DynamicWorkspaces
 import XMonad.Actions.GridSelect
 import XMonad.Actions.Navigation2D
 import XMonad.Actions.PerWorkspaceKeys
-import XMonad.Actions.Submap           as SM
-import XMonad.Actions.Search
+import qualified XMonad.Actions.Submap           as SM
+import qualified XMonad.Actions.TreeSelect       as TS
 import XMonad.Actions.WorkspaceNames
 import qualified XMonad.Actions.Search as S
 
     -- Data
 import Data.Maybe (isJust)
 import Data.Ratio ((%))
+import Data.Tree
 import qualified Data.Map        as M
+import qualified Data.Tuple.Extra as TE
 
     -- Dbus
 import qualified DBus as D
@@ -42,6 +45,7 @@ import qualified Codec.Binary.UTF8.String as UTF8
 
     -- Hooks
 import XMonad.Hooks.DynamicLog
+import XMonad.Hooks.DynamicProperty
 import XMonad.Hooks.EwmhDesktops
 import XMonad.Hooks.ManageDocks
 import XMonad.Hooks.ManageHelpers
@@ -49,12 +53,13 @@ import XMonad.Hooks.Minimize
 import XMonad.Hooks.Place
 import XMonad.Hooks.SetWMName
 import XMonad.Hooks.UrgencyHook
+import XMonad.Hooks.WorkspaceHistory    -- (For tree select)
 
     -- Layouts
 import XMonad hiding ( (|||) )
 import XMonad.Layout.Accordion
 import XMonad.Layout.BinarySpacePartition
--- import XMonad.Layout.Fullscreen
+import XMonad.Layout.Fullscreen
 import XMonad.Layout.NoFrillsDecoration
 import XMonad.Layout.ResizableTile
 import XMonad.Layout.Spiral
@@ -63,7 +68,7 @@ import XMonad.Layout.Tabbed
 import XMonad.Layout.ThreeColumns
 
     -- Layout Mods
-import XMonad.Layout.Decoration
+-- import XMonad.Layout.Decoration
 import XMonad.Layout.Gaps
 import XMonad.Layout.IndependentScreens
 import XMonad.Layout.LayoutBuilder
@@ -77,8 +82,8 @@ import XMonad.Layout.PerWorkspace
 import XMonad.Layout.Renamed
 import XMonad.Layout.Simplest
 import XMonad.Layout.Spacing
--- import XMonad.Layout.ToggleLayouts
--- import XMonad.Layout.WindowNavigation
+import XMonad.Layout.WindowNavigation
+import qualified XMonad.Layout.ToggleLayouts as T
 import qualified XMonad.Layout.MultiToggle as MT (Toggle(..))
 
     -- Prompts
@@ -101,16 +106,16 @@ import XMonad.Util.WorkspaceCompare
 -- Variables: {{{
 -------------------------------------------------------------------------------
     -- Base
-myBrowser       = "firefox" -- Set default browser
+myBrowser       = "firefox " -- Set default browser
 myFilemngr      = "vifmrun" -- Set default file manager
 myFont          = "xft:Agave:pixelsize=14" -- Set font
 myLauncher      = "dmenu_run -fn 'Agave:size=15' -nb '#1B1B29' -nf '#8897F4' -sb '#2F2F4A' -sf '#ff79c6'" -- Set font
 mySpacing       :: Int
-mySpacing       = 5 -- Set gaps
+mySpacing       = 5 -- Set gaps between windows
 noSpacing       :: Int
-noSpacing       = 0 -- Set nogaps
+noSpacing       = 0 -- Set nogaps between windows
 myTerminal      = "kitty " -- Set default terminal
-myTextEditor    = "nvim" -- Set default text editor
+myEditor        = "nvim" -- Set default text editor
 windowCount :: X (Maybe String)
 windowCount     = gets $ Just . show . length . W.integrate' . W.stack . W.workspace . W.current . windowset -- Get count of windows in selected workspace
 
@@ -127,8 +132,9 @@ myClickJustFocuses = False -- Whether clicking on a window to focus also passes 
 
     -- Mod Masks
 myModMask       = mod1Mask -- Default Modkey (Alt)
-sModMask        = mod4Mask -- Super Key
-bModMask        = mod4Mask -- Backslash Key
+mods            = mod4Mask -- Super Key
+modb            = mod4Mask -- Backslash Key: TODO 
+modt            = mod4Mask -- Tab Key: TODO
 
     -- Workspaces
 -- Mon 1
@@ -194,7 +200,7 @@ cWarning  = "#c9083f"
 
 active       = cPurpBlue
 activeWarn   = cRed
-inactive     = cGray
+inactive     = bgGray2
 focusColor   = cPurpBlue
 unfocusColor = cGray
 
@@ -217,12 +223,13 @@ overLineTheme = def
 myTabTheme = def 
     { fontName            = myFont 
     , activeColor         = active
-    , inactiveColor       = cGray
+    , inactiveColor       = inactive
     , activeBorderColor   = active
-    , inactiveBorderColor = cGray
-    , activeTextColor     = fg
-    , inactiveTextColor   = cTeal
+    , inactiveBorderColor = cViolet
+    , activeTextColor     = active
+    , inactiveTextColor   = inactive
     }
+
 ----------------------------------------------------------------------------}}}
 -- Layouts: {{{
 -------------------------------------------------------------------------------
@@ -237,7 +244,7 @@ myNav2DConf = def
 mySpacing' :: Integer -> l a -> XMonad.Layout.LayoutModifier.ModifiedLayout Spacing l a
 mySpacing' i = spacingRaw True (Border i i i i) True (Border i i i i) True
 
-myLayoutHook = avoidStruts(tiled ||| Mirror tiled) ||| masterTabbed
+myLayoutHook = avoidStruts(tiled ||| Mirror tiled) ||| fullscreenFocus Full ||| masterTabbed
   where
     nmaster = 1 -- Default master count
     ratio   = 1/2 -- Default size ratio of master:stack size
@@ -250,10 +257,6 @@ myLayoutHook = avoidStruts(tiled ||| Mirror tiled) ||| masterTabbed
     -- Layouts
     tiled           = Tall nmaster delta ratio  -- Default Master/Stack (No Gaps) 
     
-    -- full            = Full
-    --     $ named "Full"
-    --     $ mySpacing 0
-
     masterTabbed    = named "M Tab"
         $ addOverline
         $ avoidStruts
@@ -283,11 +286,11 @@ myStartupHook = do
     spawn "killall flashfocus; flashfocus &"
     spawn "killall picom; picom --experimental-backends &"
     spawn "killall polybar; polybar -c ~/.config/polybar/config-xmonad shadobar"
-    -- spawn "killall polybar; polybar -c ~/.config/polybar/config-xmonad shadobar2"
     spawn "killall xcape; xcape -e 'Hyper_L=Tab;Hyper_R=backslash'"
     
     setDefaultCursor xC_left_ptr
 
+    -- spawn "killall polybar; polybar -c ~/.config/polybar/config-xmonad shadobar2"
 ----------------------------------------------------------------------------}}}
 -- Main: {{{
 -------------------------------------------------------------------------------
@@ -300,6 +303,7 @@ main = do
 
     xmonad 
         $ dynamicProjects projects
+        $ fullscreenSupport
         $ withNavigation2DConfig myNav2DConf
         $ withUrgencyHook NoUrgencyHook 
         $ ewmh 
@@ -357,6 +361,160 @@ selectScreen s = fmap (fmap (filter onScreen)) where
 --     sstr = shorten len str
 
 ----------------------------------------------------------------------------}}}
+-- My Everything: {{{
+--------------------------------------------------------------------------------
+myApplications :: [(String, String, String)]
+myApplications = [ ("Shadoplan", (myTerminal ++ "sp"), "My TODO program")
+                 , ("Neovim", (myTerminal ++ "nvim"), "My TODO program")
+                 , ("My Wiki", (myTerminal ++ "nvim ~/vimwiki/index.md"), "My personal wiki")
+                 , ("Audacity", "audacity", "Music/Audio editor and recorder")
+                 , ("Krita", "krita", "Advanced art/drawing program")
+                 , ("Dolphin", "dolphin", "GUI File manager")
+                 , ("Discord", "Discord", "Communications Software")
+                 , ("Irssi", (myTerminal ++ "irssi"), "IRC Client")
+                 , ("Calcurse", (myTerminal ++ "calcurse"), "TUI Calendar useful for many things")
+                 , ("Qutebrowser", "qutebrowser", "Lightweight qt5 browser")
+                 , ("Lynx Browser", (myTerminal ++ "lynx"), "TUI Browser")
+                 , ("Firefox", "firefox", "Main browser")
+                 , ("Minecraft", "minecraft-launcher", "I mean just Minecraft")
+                 , ("Lutris", "lutris", "Game launcher")
+                 , ("Evince", "evince", "Simple PDF Viewer")
+                 ]
+
+myBookmarks :: [(String, String, String)]
+myBookmarks  = [ ("XMonad Doc Extending", myBrowser ++ "http://hackage.haskell.org/package/xmonad-contrib-0.16/docs/XMonad-Doc-Extending.html", "Massive doc page for XMonad")
+                 -- Programming
+               , ("Learn you a haskell", myBrowser ++ "http://learnyouahaskell.com/chapters", "Amazing book for haskell lang")
+               , ("Assembly Programming Tutorial", myBrowser ++ "https://www.tutorialspoint.com/assembly_programming/", "Very good guide to assembly")
+               , ("Guide to x86 Assembly", myBrowser ++ "http://www.cs.virginia.edu/~evans/cs216/guides/x86.html", "Nice asm guide")
+               , ("CPP Reference", myBrowser ++ "https://en.cppreference.com/w/", "For all things C/C++")
+               , ("Programming E-Books", myBrowser ++ "https://github.com/trumpowen/All-Programming-E-Books-PDF#c-books", "Big 'awesome' github, with a dump of prog books for many langs")
+                 -- Font
+               , ("Text to ASCII Art Generator", myBrowser ++ "http://patorjk.com/software/taag/#p=testall&f=Graffiti&t=Shado.vim", "Great site for ascii text/art")
+               , ("FontDrop!", myBrowser ++ "https://fontdrop.info/", "Site to view fonts")
+               , ("Nerd Fonts Cheatsheet", myBrowser ++ "https://www.nerdfonts.com/cheat-sheet", "Site for nerd font icons")
+                 -- Security/Hacking
+               , ("Hack The Box", myBrowser ++ "https://hackthebox.eu", "Amazing resource for getting out there with sec/hacking")
+               , ("TryHackMe", myBrowser ++ "https://tryhackme.com", "Another good CTF/Learning type resource")
+               , ("Reverse Engineering 101", myBrowser ++ "https://malwareunicorn.org/workshops/re101.html#0", "Great reversing walkthrough (covers alot of malware analysis)")
+               , ("Mem Labs", myBrowser ++ "https://github.com/stuxnet999/MemLabs", "Very good memory forensics resource")
+               , ("0x00 Sec", myBrowser ++ "https://0x00sec.org/", "The 'Reddit' for all things Security")
+               , ("Thug Crowd", myBrowser ++ "https://thugcrowd.com/archive.html", "Some fun hacking exercises")
+               , ("Hacking Books", myBrowser ++ "https://haxf4rall.com/hacking-books/", "Site for free security books")
+               ]
+
+myFiles :: [(String, String, String)]
+myFiles  = [ ("XMonad Config", myEditor ++ "~/.xmonad/xmonad.hs", "My xmonad configuration file")
+           , ("Doom Config", myEditor ++ "~/.doom.d/config.el", "My doom emacs config.el file")
+           , ("Doom Init", myEditor ++ "~/.doom.d/init.el", "My doom emacs init.el file")
+           , ("Dwm Config", myEditor ++ "~/dwm/config.h", "My dwm configuration file")
+           , ("Zshrc", myEditor ++ "~/.zshrc", "My zsh config file")
+            ]
+
+-- Allows me to use the same functions for treeselect in gridselect
+myAppGrid :: [(String, String)]
+myAppGrid = [ (a,b) | (a,b,c) <- xs]
+  where xs = myApplications
+        
+myBookmarksGrid :: [(String, String)]
+myBookmarksGrid  = [ (a,b) | (a,b,c) <- xs]
+  where xs = myBookmarks
+
+myFilesGrid :: [(String, String)]
+myFilesGrid  = [ (a,b) | (a,b,c) <- xs]
+  where xs = myFiles
+
+-----------------------------------------------------------------------------}}}
+-- Tree Select: {{{
+--------------------------------------------------------------------------------
+tsAction :: TS.TSConfig (X ()) -> X ()
+tsAction a = TS.treeselectAction a
+    [ Node (TS.TSNode "My Apps" "List of many gui/tui applications" (return ()))
+      [Node (TS.TSNode (TE.fst3 $ myApplications !! n)
+                       (TE.thd3 $ myApplications !! n)
+                       (spawn $ TE.snd3 $ myApplications !! n)
+            ) [] | n <- [0..(length myApplications - 1)]
+      ]
+    , Node (TS.TSNode "My Bookmarks" "List of my more important bookmarks" (return ()))
+      [Node (TS.TSNode (TE.fst3 $ myBookmarks !! n)
+                       (TE.thd3 $ myBookmarks !! n)
+                       (spawn $ TE.snd3 $ myBookmarks !! n)
+            ) [] | n <- [0..(length myBookmarks - 1)]
+      ]
+    , Node (TS.TSNode "My Files" "List of my most used files" (return ()))
+      [Node (TS.TSNode (TE.fst3 $ myFiles !! n)
+                       (TE.thd3 $ myFiles !! n)
+                       (spawn $ TE.snd3 $ myFiles !! n)
+            ) [] | n <- [0..(length myFiles - 1)]
+      ]
+    ]
+
+myTreeSelConfig :: TS.TSConfig a
+myTreeSelConfig = TS.TSConfig { TS.ts_hidechildren = True
+                              , TS.ts_background   = 0x7A1B1B29
+                              , TS.ts_font         = myFont
+                              , TS.ts_node         = (0xffbfaae3, 0xff202331)
+                              , TS.ts_nodealt      = (0xffbfaae3, 0xff292d3e)
+                              , TS.ts_highlight    = (0xffffffff, 0xff755999)
+                              , TS.ts_extra        = 0xffbfaae3
+                              , TS.ts_node_width   = 200
+                              , TS.ts_node_height  = 20
+                              , TS.ts_originX      = 0
+                              , TS.ts_originY      = 0
+                              , TS.ts_indent       = 80
+                              , TS.ts_navigate     = myTreeNav
+                              }
+
+myTreeNav = M.fromList
+    [ ((0, xK_Escape),  TS.cancel          )
+    , ((0, xK_Return),  TS.select          )
+    , ((0, xK_space ),  TS.select          )
+    , ((0, xK_Up    ),  TS.movePrev        )
+    , ((0, xK_Down  ),  TS.moveNext        )
+    , ((0, xK_Left  ),  TS.moveParent      )
+    , ((0, xK_Right ),  TS.moveChild       )
+    , ((0, xK_k     ),  TS.movePrev        )
+    , ((0, xK_j     ),  TS.moveNext        )
+    , ((0, xK_h     ),  TS.moveParent      )
+    , ((0, xK_l     ),  TS.moveChild       )
+    , ((0, xK_o     ),  TS.moveHistBack    )
+    , ((0, xK_i     ),  TS.moveHistForward )
+    ]
+
+-----------------------------------------------------------------------------}}}
+-- Grid Select: {{{
+--------------------------------------------------------------------------------
+myGridTheme :: Window -> Bool -> X (String, String)
+myGridTheme = colorRangeFromClassName
+                  (0x1B,0x1B,0x29) -- lowest inactive bg
+                  (0x1B,0x1B,0x29) -- highest inactive bg
+                  (0x2F,0x2F,0x4A) -- active bg
+                  (0xBD,0x93,0xF9) -- inactive fg
+                  (0xFF,0x79,0xC6) -- active fg
+
+mygridConfig colorizer = (buildDefaultGSConfig myGridTheme)
+    { gs_cellheight   = 40
+    , gs_cellwidth    = 300
+    , gs_cellpadding  = 15
+    , gs_originFractX = 0.5
+    , gs_originFractY = 0.5
+    , gs_font         = myFont
+    }
+
+spawnSelected' :: [(String, String)] -> X ()
+spawnSelected' lst = gridselect conf lst >>= flip whenJust spawn
+    where conf = defaultGSConfig
+
+-----------------------------------------------------------------------------}}}
+-- Search Engines: {{{
+--------------------------------------------------------------------------------
+archwiki, reddit, cppref :: S.SearchEngine
+
+archwiki = S.searchEngine "archwiki" "https://wiki.archlinux.org/index.php?search="
+reddit   = S.searchEngine "reddit"   "https://www.reddit.com/search?q="
+cppref   = S.searchEngine "cppref"   "https://en.cppreference.com/mwiki/index.php?search="
+
+----------------------------------------------------------------------------}}}
 -- Xprompt: {{{
 --------------------------------------------------------------------------------
 shXPConfig :: XPConfig
@@ -403,7 +561,7 @@ shXPKeymap = M.fromList $
      , (xK_bracketleft, quit)
      ]
      ++
-     map (first $ (,) sModMask)    -- meta key + <key>
+     map (first $ (,) mods)    -- meta key + <key>
      [ (xK_BackSpace, killWord Prev) -- kill the prev word
      , (xK_f, moveWord Next)         -- move a word forward
      , (xK_b, moveWord Prev)         -- move a word backward
@@ -427,51 +585,6 @@ shXPKeymap = M.fromList $
      ]
 
 -----------------------------------------------------------------------------}}}
--- Grid Select: {{{
---------------------------------------------------------------------------------
-myGridTheme :: Window -> Bool -> X (String, String)
-myGridTheme = colorRangeFromClassName
-                  (0x1B,0x1B,0x29) -- lowest inactive bg
-                  (0x1B,0x1B,0x29) -- highest inactive bg
-                  (0x2F,0x2F,0x4A) -- active bg
-                  (0xBD,0x93,0xF9) -- inactive fg
-                  (0xFF,0x79,0xC6) -- active fg
-
-mygridConfig colorizer = (buildDefaultGSConfig myGridTheme)
-    { gs_cellheight   = 40
-    , gs_cellwidth    = 300
-    , gs_cellpadding  = 15
-    , gs_originFractX = 0.5
-    , gs_originFractY = 0.5
-    , gs_font         = myFont
-    }
-
-spawnSelected' :: [(String, String)] -> X ()
-spawnSelected' lst = gridselect conf lst >>= flip whenJust spawn
-    where conf = defaultGSConfig
-
-myAppGrid :: [(String, String)]
-myAppGrid = [ (a,b) | (a,b,c) <- xs]
-  where xs = myApplications
-
-myApplications :: [(String, String, String)]
-myApplications = [ 
-        ("Shadoplan", "sp", "My TODO program")
-        , ("Audacity", "audacity", "Music/Audio editor and recorder")
-        , ("Krita", "krita", "Advanced art/drawing program")
-        , ("Dolphin", "dolphin", "GUI File manager")
-        ]
-
------------------------------------------------------------------------------}}}
--- Search Engines: {{{
---------------------------------------------------------------------------------
-archwiki, reddit, cppref :: S.SearchEngine
-
-archwiki = S.searchEngine "archwiki" "https://wiki.archlinux.org/index.php?search="
-reddit   = S.searchEngine "reddit"   "https://www.reddit.com/search?q="
-cppref   = S.searchEngine "cppref"   "https://en.cppreference.com/mwiki/index.php?search="
-
-----------------------------------------------------------------------------}}}
 -- Named Scratchpads: {{{
 -------------------------------------------------------------------------------
 myScratchPads :: [NamedScratchpad]
@@ -501,9 +614,10 @@ myScratchPads = [ NS "terminal" spawnTerm findTerm manageTerm
 -------------------------------------------------------------------------------
 projects :: [Project]
 projects =
-  [ Project { projectName      = "study"
-            , projectDirectory = "~/Documents/"
-            , projectStartHook = Just $ do spawn myTerminal
+  [ Project { projectName      = m0ws3
+            , projectDirectory = "~/"
+            , projectStartHook = Just $ do spawn "discord"
+                                           spawn (myTerminal ++ "irssi")
             }
   , Project { projectName      = "term"
             , projectDirectory = "~/Documents/"
@@ -511,8 +625,8 @@ projects =
                                            spawn myTerminal
             }
   , Project { projectName      = "program"
-            , projectDirectory = "~/Documents/"
-            , projectStartHook = Just $ do spawn myBrowser
+            , projectDirectory = "~/Documents/Programming/"
+            , projectStartHook = Just $ do spawn (myTerminal ++ "nvim")
             }
   , Project { projectName      = "system"
             , projectDirectory = "~/Documents/"
@@ -529,9 +643,9 @@ myKeys conf@(XConfig {XMonad.modMask = modm}) = M.fromList $
         -- Xmonad ---------------------------------------------------------------------------------
     [ ((modm .|. controlMask,   xK_q     ), io (exitWith ExitSuccess)                   ) -- Quit
     , ((modm,                   xK_q     ), spawn "xmonad --recompile; xmonad --restart") -- Restart
-    , ((mod4Mask.|.controlMask, xK_F12   ), spawn "~/.config/scripts/switch_gpu"        ) -- Switch GPU
+    , ((mods.|.controlMask, xK_F12   ), spawn "~/.config/scripts/switch_gpu"        ) -- Switch GPU
     , ((modm .|. controlMask,   xK_b     ), spawn "killall polybar; polybar -c ~/.config/polybar/config-xmonad shadobar") -- Restart polybar
-    , ((mod4Mask,               xK_p     ), spawn "betterlockscreen -l blur -r 1920x1080  -b 0.2 -t 'Welcome back, Shado...'") -- Lock Screen
+    , ((mods,               xK_p     ), spawn "betterlockscreen -l blur -r 1920x1080  -b 0.2 -t 'Welcome back, Shado...'") -- Lock Screen
         -- Base -----------------------------------------------------------------------------------
     , ((modm .|. shiftMask,     xK_Return), spawn $ XMonad.terminal conf                ) -- Terminal
     , ((modm,                   xK_p     ), spawn myLauncher                            ) -- Dmenu
@@ -545,8 +659,8 @@ myKeys conf@(XConfig {XMonad.modMask = modm}) = M.fromList $
     , ((modm .|. shiftMask,     xK_Right ), nextWS                                      ) -- Cycle Right
     , ((modm .|. shiftMask,     xK_Left  ), prevWS                                      ) -- Cycle Left
         -- Tabs -----------------------------------------------------------------------------------
-    , ((modm,                   xK_semicolon ), bindOn [("M Tab", windows W.focusUp),("", onGroup W.focusUp')]    ) -- Focus next tab up
-    , ((modm,                   xK_apostrophe), bindOn [("M Tab", windows W.focusDown),("", onGroup W.focusDown')]) -- Focus next tab down
+    -- , ((modm,                   xK_semicolon ), bindOn LD [("M Tab", windows W.focusUp),("", onGroup W.focusUp')]    ) -- Focus next tab up
+    -- , ((modm,                   xK_apostrophe), bindOn LD [("M Tab", windows W.focusDown),("", onGroup W.focusDown')]) -- Focus next tab down
     , ((modm .|. shiftMask,     xK_semicolon ), windows W.swapUp                                                  ) -- Swap tab up
     , ((modm .|. shiftMask,     xK_apostrophe), windows W.swapDown                                                ) -- Swap tab down
         -- Windows --------------------------------------------------------------------------------
@@ -582,28 +696,30 @@ myKeys conf@(XConfig {XMonad.modMask = modm}) = M.fromList $
     , ((0,                      0x1008FF03), spawn "xbacklight -dec 5"                  ) -- Dec Brightness
 
         -- Open Applications -------------------------------------------------------------------------------------
-    , ((mod4Mask,                   xK_b      ), spawn myBrowser                                         ) -- Browser
-    , ((mod4Mask .|. controlMask,   xK_m      ), spawn (myTerminal ++ "calcurse")                        ) -- Calcurse
-    , ((mod4Mask .|. shiftMask,     xK_d      ), spawn "discord"                                         ) -- Discord
-    , ((mod4Mask,                   xK_v      ), spawn (myTerminal ++ myFilemngr)                        ) -- File Manager
-    , ((mod4Mask,                   xK_a      ), spawn (myTerminal ++ "pulsemixer")                      ) -- Mixer
-    , ((mod4Mask .|. shiftMask,     xK_m      ), spawn (myTerminal ++ "ncmpcpp")                         ) -- Ncmpcpp
-    , ((mod4Mask,                   xK_w      ), spawn (myTerminal ++ "nmtui")                           ) -- Netork
-    , ((mod4Mask,                   xK_h      ), spawn (myTerminal ++ "htop")                            ) -- Processes
-    , ((mod4Mask,                   xK_s      ), spawn "~/.config/rofi/scripts/menu_powermenu.sh"        ) -- Processes
+    , ((mods,                       xK_b      ), spawn myBrowser                                         ) -- Browser
+    , ((mods .|. controlMask,       xK_m      ), spawn (myTerminal ++ "calcurse")                        ) -- Calcurse
+    , ((mods .|. shiftMask,         xK_d      ), spawn "discord"                                         ) -- Discord
+    , ((mods,                       xK_v      ), spawn (myTerminal ++ myFilemngr)                        ) -- File Manager
+    , ((mods,                       xK_a      ), spawn (myTerminal ++ "pulsemixer")                      ) -- Mixer
+    , ((mods .|. shiftMask,         xK_m      ), spawn (myTerminal ++ "ncmpcpp")                         ) -- Ncmpcpp
+    , ((mods,                       xK_w      ), spawn (myTerminal ++ "nmtui")                           ) -- Netork
+    , ((mods,                       xK_h      ), spawn (myTerminal ++ "htop")                            ) -- Processes
+    , ((mods,                       xK_s      ), spawn "~/.config/rofi/scripts/menu_powermenu.sh"        ) -- Processes
         -- Screenshots -------------------------------------------------------------------------------------------
     , ((shiftMask .|. controlMask,  xK_Print  ), spawn "flameshot gui -p ~/Pictures/Screenshots"         ) -- Area
     , ((0,                          xK_Print  ), spawn "scrot '~/Pictures/Screenshots/%F_%T.png'"        ) -- Fullscreen
-    , ((mod4Mask .|. modm,          xK_Print  ), spawn "flameshot screen -r -c -p ~/Pictures/Screenshots") -- Monitor
+    , ((mods .|. modm,              xK_Print  ), spawn "flameshot screen -r -c -p ~/Pictures/Screenshots") -- Monitor
     , ((controlMask,                xK_Print  ), spawn "scrot -u '~/Pictures/Screenshots'"               ) -- Window
     , ((modm .|. controlMask,       xK_Print  ), spawn "~/.config/scripts/imgurup"                       ) -- Imgur
         -- Grid Select -------------------------------------------------------------------------------------------
     , ((modm,                       xK_g      ), goToSelected $ mygridConfig myGridTheme                 ) -- Go to grid item
     , ((modm .|. shiftMask,         xK_g      ), bringSelected $ mygridConfig myGridTheme                ) -- Grab and brind over grid item
     , ((modm .|. controlMask,       xK_g      ), spawnSelected' myAppGrid                                ) -- Custom program list
+        -- Tree Select -------------------------------------------------------------------------------------------
+    , ((modm .|. shiftMask,         xK_t      ), tsAction myTreeSelConfig                                ) -- Custom program list
         -- Search Engine -----------------------------------------------------------------------------------------
-    , ((modm,               xK_slash), SM.submap $ searchEngineMap $ promptSearch shXPConfig'            ) -- Searches via prompt
-    , ((modm .|. shiftMask, xK_slash), SM.submap $ searchEngineMap $ selectSearch                        ) -- Searches via clipboard
+    , ((modm,               xK_slash), SM.submap $ searchEngineMap $ S.promptSearch shXPConfig'            ) -- Searches via prompt
+    , ((modm .|. shiftMask, xK_slash), SM.submap $ searchEngineMap $ S.selectSearch                        ) -- Searches via clipboard
     ]
     ++
     [((m .|. modm, k), windows $ onCurrentScreen f i)
