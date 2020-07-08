@@ -2,7 +2,6 @@
 -- Shadomonad Config --
 -------------------------------------------------------------------------------
 -- TODO: add some bindings
-    --   fix xmonad-log finding workspaces
     --   change layouts
     --   change polybar
     --   Fix up the example projects in there and make my own! 
@@ -55,6 +54,7 @@ import XMonad.Hooks.UrgencyHook
 import XMonad hiding ( (|||) )
 import XMonad.Layout.Accordion
 import XMonad.Layout.BinarySpacePartition
+-- import XMonad.Layout.Fullscreen
 import XMonad.Layout.NoFrillsDecoration
 import XMonad.Layout.ResizableTile
 import XMonad.Layout.Spiral
@@ -66,6 +66,8 @@ import XMonad.Layout.ThreeColumns
 import XMonad.Layout.Decoration
 import XMonad.Layout.Gaps
 import XMonad.Layout.IndependentScreens
+-- import XMonad.Layout.LayoutBuilder
+-- import XMonad.Layout.LayoutCombinators
 import XMonad.Layout.LayoutModifier
 import XMonad.Layout.Master
 import XMonad.Layout.MultiToggle (mkToggle, single, EOT(EOT), (??))
@@ -75,6 +77,8 @@ import XMonad.Layout.PerWorkspace
 import XMonad.Layout.Renamed
 import XMonad.Layout.Simplest
 import XMonad.Layout.Spacing
+-- import XMonad.Layout.ToggleLayouts
+import XMonad.Layout.WindowNavigation
 import qualified XMonad.Layout.MultiToggle as MT (Toggle(..))
 
     -- Prompts
@@ -160,8 +164,8 @@ myConfig = def {
                         <+> manageHook def,
     -- logHook            = myLogHook,
     handleEventHook    = docksEventHook
-                        <+> minimizeEventHook
-                        <+> fullscreenEventHook,
+                        <+> minimizeEventHook,
+                        -- <+> fullscreenEventHook,
     startupHook        = myStartupHook
 }
 -----------------------------------------------------------------------------}}}
@@ -233,9 +237,8 @@ myNav2DConf = def
 mySpacing' :: Integer -> l a -> XMonad.Layout.LayoutModifier.ModifiedLayout Spacing l a
 mySpacing' i = spacingRaw True (Border i i i i) True (Border i i i i) True
 
-myLayoutHook = avoidStruts (tiled ||| Mirror tiled ||| Full ||| masterTabbed ||| simpleTabbed)
+myLayoutHook = avoidStruts(tiled ||| Mirror tiled ||| masterTabbed)
   where
-    tiled   = Tall nmaster delta ratio -- Master/Stack
     nmaster = 1 -- Default master count
     ratio   = 1/2 -- Default size ratio of master:stack size
     delta   = 3/100 -- Percent of screen inc/dec when resizing
@@ -244,9 +247,17 @@ myLayoutHook = avoidStruts (tiled ||| Mirror tiled ||| Full ||| masterTabbed |||
     mySpacing   = spacing gap
     myGaps      = gaps [(U, gap),(D, gap),(L,gap),(R,gap)]
 
+    -- Layouts
+    tiled           = Tall nmaster delta ratio  -- Default Master/Stack (No Gaps) 
+    
+    -- full            = Full
+    --     $ named "Full"
+    --     $ mySpacing 0
+
     masterTabbed    = named "M Tab"
         $ addOverline
-        $ mySpacing
+        $ avoidStruts
+        $ mySpacing' 0
         $ myGaps
         $ mastered (1/100) (1/2)
         $ tabbed shrinkText myTabTheme

@@ -287,7 +287,7 @@ main = do
         $ myConfig xmproc
 
 myConfig p = def
-        { borderWidth        = border
+        { borderWidth        = 0
         , clickJustFocuses   = myClickJustFocuses
         , focusFollowsMouse  = myFocusFollowsMouse
         , normalBorderColor  = myNormalBorderColor
@@ -394,7 +394,7 @@ projects =
 
 --myTerminal          = "terminator"
 --myTerminalClass     = "Terminator"
-myTerminal          = "urxvt"
+myTerminal          = "kitty"
 myAltTerminal       = "cool-retro-term"
 myBrowser           = "browser" -- chrome with WS profile dirs
 myBrowserClass      = "Google-chrome-beta"
@@ -605,8 +605,7 @@ barFull = avoidStruts $ Simplest
 
 -- cf http://xmonad.org/xmonad-docs/xmonad-contrib/src/XMonad-Config-Droundy.html
 
-myLayoutHook = showWorkspaceName
-             $ onWorkspace wsFLOAT floatWorkSpace
+myLayoutHook = onWorkspace wsFLOAT floatWorkSpace
              $ fullscreenFloat -- fixes floating windows going full screen, while retaining "bounded" fullscreen
              $ fullScreenToggle
              $ fullBarToggle
@@ -1199,7 +1198,7 @@ myKeys conf = let
     , ("M-S-q"                  , addName "Quit XMonad"                     $ confirmPrompt hotPromptTheme "Quit XMonad" $ io (exitWith ExitSuccess))
     , ("M-x"                    , addName "Lock screen"                     $ spawn "xset s activate")
     , ("M-<F4>"                    , addName "Print Screen"                    $ return ())
-  --, ("M-F1"                   , addName "Show Keybindings"                $ return ())
+    -- , ("M-<F1>"                   , addName "Show Keybindings"                $ return ())
     ] ^++^
 
     -----------------------------------------------------------------------
