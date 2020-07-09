@@ -1,3 +1,4 @@
+{-# LANGUAGE AllowAmbiguousTypes, DeriveDataTypeable, MultiParamTypeClasses, TypeSynonymInstances #-} -- AllowAmbiguousTypes, DeriveDataTypeable, TypeSynonymInstances, MultiParamTypeClasses #-}
 -------------------------------------------------------------------------------
 -- Shadomonad Config --
 -------------------------------------------------------------------------------
@@ -45,7 +46,7 @@ import qualified Codec.Binary.UTF8.String as UTF8
 
     -- Hooks
 import XMonad.Hooks.DynamicLog
-import XMonad.Hooks.DynamicProperty
+-- import XMonad.Hooks.DynamicProperty
 import XMonad.Hooks.EwmhDesktops
 import XMonad.Hooks.ManageDocks
 import XMonad.Hooks.ManageHelpers
@@ -59,6 +60,7 @@ import XMonad.Hooks.WorkspaceHistory    -- (For tree select)
 import XMonad hiding ( (|||) )
 import XMonad.Layout.Accordion
 import XMonad.Layout.BinarySpacePartition
+import XMonad.Layout.BoringWindows
 import XMonad.Layout.Fullscreen
 import XMonad.Layout.NoFrillsDecoration
 import XMonad.Layout.ResizableTile
@@ -68,18 +70,21 @@ import XMonad.Layout.Tabbed
 import XMonad.Layout.ThreeColumns
 
     -- Layout Mods
--- import XMonad.Layout.Decoration
+import XMonad.Layout.Decoration
 import XMonad.Layout.Gaps
 import XMonad.Layout.IndependentScreens
 import XMonad.Layout.LayoutBuilder
 -- import XMonad.Layout.LayoutCombinators
 import XMonad.Layout.LayoutModifier
 import XMonad.Layout.Master
-import XMonad.Layout.MultiToggle (mkToggle, single, EOT(EOT), (??))
-import XMonad.Layout.MultiToggle.Instances (StdTransformers(NBFULL, MIRROR, NOBORDERS))
+import XMonad.Layout.MultiToggle --(mkToggle, single, EOT(EOT), (??))
+import XMonad.Layout.MultiToggle.Instances --(StdTransformers(NBFULL, MIRROR, NOBORDERS))
 import XMonad.Layout.NoBorders
+import XMonad.Layout.PerScreen
 import XMonad.Layout.PerWorkspace
 import XMonad.Layout.Renamed
+import XMonad.Layout.Reflect
+import XMonad.Layout.SimpleDecoration
 import XMonad.Layout.Simplest
 import XMonad.Layout.Spacing
 import XMonad.Layout.WindowNavigation
@@ -235,35 +240,77 @@ myTabTheme = def
 -------------------------------------------------------------------------------
 myNav2DConf = def
     { defaultTiledNavigation    = centerNavigation
-    , floatNavigation           = centerNavigation
-    , screenNavigation          = lineNavigation
-    , layoutNavigation          = [("Full",          centerNavigation)]
-    , unmappedWindowRect        = [("Full", singleWindowRect)]
+    -- , floatNavigation           = centerNavigation
+    -- , screenNavigation          = lineNavigation
+    -- , layoutNavigation          = [("Full",          centerNavigation)]
+    -- , unmappedWindowRect        = [("Full", singleWindowRect)]
     }
 
 mySpacing' :: Integer -> l a -> XMonad.Layout.LayoutModifier.ModifiedLayout Spacing l a
 mySpacing' i = spacingRaw True (Border i i i i) True (Border i i i i) True
 
-myLayoutHook = avoidStruts(tiled ||| Mirror tiled) ||| fullscreenFocus Full ||| masterTabbed
+data FULLBAR = FULLBAR deriving (Read, Show, Eq, Typeable)
+instance Transformer FULLBAR Window where
+    transform FULLBAR x k = k barFull (\_ -> x)
+barFull = avoidStruts $ Simplest
+
+-- ||| masterTabbed
+myLayoutHook = fullScreenToggle
+             $ fullBarToggle
+             $ mirrorToggle
+             $ reflectToggle
+             $ tiled ||| Mirror tiled ||| fullscreenFocus Full  
   where
+    fullScreenToggle = mkToggle (single FULL)
+    fullBarToggle    = mkToggle (single FULLBAR)
+    mirrorToggle     = mkToggle (single MIRROR)
+    reflectToggle    = mkToggle (single REFLECTX)
+
     nmaster = 1 -- Default master count
     ratio   = 1/2 -- Default size ratio of master:stack size
     delta   = 3/100 -- Percent of screen inc/dec when resizing
+
     named n     = renamed [(XMonad.Layout.Renamed.Replace n)]
-    addOverline = noFrillsDeco shrinkText overLineTheme
+    trimNamed w n       = renamed [(XMonad.Layout.Renamed.CutWordsLeft w),
+                                   (XMonad.Layout.Renamed.PrependWords n)] 
+    suffixed n          = renamed [(XMonad.Layout.Renamed.AppendWords n)]
+    trimSuffixed w n    = renamed [(XMonad.Layout.Renamed.CutWordsRight w),
+                                   (XMonad.Layout.Renamed.AppendWords n)]
+
+    -- addOverline :: (Eq a, Shrinker s) => s -> Theme -> l a -> ModifiedLayout (Decoration NoFrillsDecoration s) l a
+    -- addOverline :: ModifiedLayout (Decoration NoFrillsDecoration s) l0 a0
+    -- addOverline = noFrillsDeco shrinkText overLineTheme
     mySpacing   = spacing gap
     myGaps      = gaps [(U, gap),(D, gap),(L,gap),(R,gap)]
 
     -- Layouts
     tiled           = Tall nmaster delta ratio  -- Default Master/Stack (No Gaps) 
+
+    -- tabs            = named "Tabs"
+    --     $ avoidStruts
+    --     $ addOverline
+    --     $ addTabs shrinkText myTabTheme
+    --     $ Simplest
     
-    masterTabbed    = named "M Tab"
-        $ addOverline
-        $ avoidStruts
-        $ mySpacing' 0
-        $ myGaps
-        $ mastered (1/100) (1/2)
-        $ tabbed shrinkText myTabTheme
+
+    -- masterTabbed    = named "M Tab"
+    --     $ avoidStruts
+    --     $ windowNavigation
+    --     $ addOverline
+    --     $ addTabs shrinkText myTabTheme
+    --     $ subLayout [] (Simplest ||| Accordion)
+    --     $ ifWider smallMonResWidth wideLayouts stdLayouts
+    --     where
+    --         wideLayouts = myGaps $ mySpacing
+    --             $ (suffixed "W 3C |" $ ThreeColMid 1 (1/20) (1/2)) |||
+    --               (trimSuffixed 1 "W BSP |" $ hiddenWindows emptyBSP)
+    --         stdLayouts = myGaps $ mySpacing
+    --             $ (suffixed "T2 |" $ ResizableTall 1 (1/20) (1/2)) |||
+    --               (suffixed "BSP |" $ hiddenWindows emptyBSP)
+    -- $ boringWindows
+    -- $ mySpacing' 0
+    -- $ myGaps
+    -- $ mastered (1/100) (1/2)
 
 ----------------------------------------------------------------------------}}}
 -- Window rules: {{{
@@ -450,20 +497,20 @@ tsAction a = TS.treeselectAction a
     ]
 
 myTreeSelConfig :: TS.TSConfig a
-myTreeSelConfig = TS.TSConfig { TS.ts_hidechildren = True
-                              , TS.ts_background   = 0x7A1B1B29
-                              , TS.ts_font         = myFont
-                              , TS.ts_node         = (0xffbfaae3, 0xff202331)
-                              , TS.ts_nodealt      = (0xffbfaae3, 0xff292d3e)
-                              , TS.ts_highlight    = (0xffffffff, 0xff755999)
-                              , TS.ts_extra        = 0xffbfaae3
-                              , TS.ts_node_width   = 200
-                              , TS.ts_node_height  = 20
-                              , TS.ts_originX      = 0
-                              , TS.ts_originY      = 0
-                              , TS.ts_indent       = 80
-                              , TS.ts_navigate     = myTreeNav
-                              }
+myTreeSelConfig  = TS.TSConfig { TS.ts_hidechildren = True
+                               , TS.ts_background   = 0x7A1B1B29
+                               , TS.ts_font         = myFont
+                               , TS.ts_node         = (0xffbfaae3, 0xff202331)
+                               , TS.ts_nodealt      = (0xffbfaae3, 0xff292d3e)
+                               , TS.ts_highlight    = (0xffffffff, 0xff755999)
+                               , TS.ts_extra        = 0xffbfaae3
+                               , TS.ts_node_width   = 200
+                               , TS.ts_node_height  = 20
+                               , TS.ts_originX      = 0
+                               , TS.ts_originY      = 0
+                               , TS.ts_indent       = 80
+                               , TS.ts_navigate     = myTreeNav
+                               }
 
 myTreeNav = M.fromList
     [ ((0, xK_Escape),  TS.cancel          )
