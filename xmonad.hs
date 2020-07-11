@@ -1,4 +1,4 @@
-{-# LANGUAGE AllowAmbiguousTypes, DeriveDataTypeable, MultiParamTypeClasses, TypeSynonymInstances #-} -- AllowAmbiguousTypes, DeriveDataTypeable, TypeSynonymInstances, MultiParamTypeClasses #-}
+{-# LANGUAGE NoMonomorphismRestriction, AllowAmbiguousTypes, DeriveDataTypeable, MultiParamTypeClasses, TypeSynonymInstances #-} -- AllowAmbiguousTypes, DeriveDataTypeable, TypeSynonymInstances, MultiParamTypeClasses #-}
 -------------------------------------------------------------------------------
 -- Shadomonad Config --
 -------------------------------------------------------------------------------
@@ -13,6 +13,7 @@
 -------------------------------------------------------------------------------
     -- Base
 import XMonad
+-- import XMonad.Config.Prime
 import Data.Monoid
 import System.Exit
 import System.IO (hClose)
@@ -21,18 +22,20 @@ import qualified XMonad.StackSet as W
 
     -- Actions
 import XMonad.Actions.CycleWS  --(moveTo, shiftTo, WSType(..), nextScreen, prevScreen)
-import XMonad.Actions.ConditionalKeys
+import qualified XMonad.Actions.ConditionalKeys  as CK
+import XMonad.Actions.CopyWindow
 import XMonad.Actions.DynamicProjects
-import XMonad.Actions.DynamicWorkspaces
+-- import XMonad.Actions.DynamicWorkspaces
 import XMonad.Actions.GridSelect
 import XMonad.Actions.Navigation2D
-import XMonad.Actions.PerWorkspaceKeys
+-- import XMonad.Actions.PerWorkspaceKeys
 import qualified XMonad.Actions.Submap           as SM
 import qualified XMonad.Actions.TreeSelect       as TS
-import XMonad.Actions.WorkspaceNames
+-- import XMonad.Actions.WorkspaceNames
 import qualified XMonad.Actions.Search as S
 
     -- Data
+import Data.List
 import Data.Maybe (isJust)
 import Data.Ratio ((%))
 import Data.Tree
@@ -72,6 +75,7 @@ import XMonad.Layout.ThreeColumns
     -- Layout Mods
 import XMonad.Layout.Decoration
 import XMonad.Layout.Gaps
+import XMonad.Layout.Hidden
 import XMonad.Layout.IndependentScreens
 import XMonad.Layout.LayoutBuilder
 -- import XMonad.Layout.LayoutCombinators
@@ -240,10 +244,10 @@ myTabTheme = def
 -------------------------------------------------------------------------------
 myNav2DConf = def
     { defaultTiledNavigation    = centerNavigation
-    -- , floatNavigation           = centerNavigation
-    -- , screenNavigation          = lineNavigation
-    -- , layoutNavigation          = [("Full",          centerNavigation)]
-    -- , unmappedWindowRect        = [("Full", singleWindowRect)]
+    , floatNavigation           = centerNavigation
+    , screenNavigation          = lineNavigation
+    , layoutNavigation          = [("Full",          centerNavigation)]
+    , unmappedWindowRect        = [("Full", singleWindowRect)]
     }
 
 mySpacing' :: Integer -> l a -> XMonad.Layout.LayoutModifier.ModifiedLayout Spacing l a
@@ -259,7 +263,8 @@ myLayoutHook = fullScreenToggle
              $ fullBarToggle
              $ mirrorToggle
              $ reflectToggle
-             $ tiled ||| Mirror tiled ||| fullscreenFocus Full  
+             $ hiddenWindows
+             $ tiled ||| Mirror tiled ||| fullscreenFocus Full ||| masterTabbed
   where
     fullScreenToggle = mkToggle (single FULL)
     fullBarToggle    = mkToggle (single FULLBAR)
@@ -277,9 +282,7 @@ myLayoutHook = fullScreenToggle
     trimSuffixed w n    = renamed [(XMonad.Layout.Renamed.CutWordsRight w),
                                    (XMonad.Layout.Renamed.AppendWords n)]
 
-    -- addOverline :: (Eq a, Shrinker s) => s -> Theme -> l a -> ModifiedLayout (Decoration NoFrillsDecoration s) l a
-    -- addOverline :: ModifiedLayout (Decoration NoFrillsDecoration s) l0 a0
-    -- addOverline = noFrillsDeco shrinkText overLineTheme
+    addOverline = noFrillsDeco shrinkText overLineTheme
     mySpacing   = spacing gap
     myGaps      = gaps [(U, gap),(D, gap),(L,gap),(R,gap)]
 
@@ -293,20 +296,20 @@ myLayoutHook = fullScreenToggle
     --     $ Simplest
     
 
-    -- masterTabbed    = named "M Tab"
-    --     $ avoidStruts
-    --     $ windowNavigation
-    --     $ addOverline
-    --     $ addTabs shrinkText myTabTheme
-    --     $ subLayout [] (Simplest ||| Accordion)
-    --     $ ifWider smallMonResWidth wideLayouts stdLayouts
-    --     where
-    --         wideLayouts = myGaps $ mySpacing
-    --             $ (suffixed "W 3C |" $ ThreeColMid 1 (1/20) (1/2)) |||
-    --               (trimSuffixed 1 "W BSP |" $ hiddenWindows emptyBSP)
-    --         stdLayouts = myGaps $ mySpacing
-    --             $ (suffixed "T2 |" $ ResizableTall 1 (1/20) (1/2)) |||
-    --               (suffixed "BSP |" $ hiddenWindows emptyBSP)
+    masterTabbed    = named "M Tab"
+        $ avoidStruts
+        $ windowNavigation
+        $ addOverline
+        $ addTabs shrinkText myTabTheme
+        $ subLayout [] (Simplest ||| Accordion)
+        $ ifWider 1920 wideLayouts stdLayouts
+        where
+            wideLayouts = myGaps $ mySpacing
+                $ (suffixed "W 3C |" $ ThreeColMid 1 (1/20) (1/2)) |||
+                  (trimSuffixed 1 "W BSP |" $ hiddenWindows emptyBSP)
+            stdLayouts = myGaps $ mySpacing
+                $ (suffixed "T2 |" $ Tall 1 (1/20) (1/2)) |||
+                  (suffixed "BSP |" $ hiddenWindows emptyBSP)
     -- $ boringWindows
     -- $ mySpacing' 0
     -- $ myGaps
@@ -329,11 +332,8 @@ myManageHook = composeAll
 myStartupHook = do
     setWMName "ShadoWM"
     spawn "feh --bg-scale --no-fehbg $HOME/Pictures/Backgrounds/forest.png &"
-    spawn "killall flameshot; flameshot &"
-    spawn "killall flashfocus; flashfocus &"
-    spawn "killall picom; picom --experimental-backends &"
+    spawn "picom --experimental-backends &"
     spawn "killall polybar; polybar -c ~/.config/polybar/config-xmonad shadobar"
-    spawn "killall xcape; xcape -e 'Hyper_L=Tab;Hyper_R=backslash'"
     
     setDefaultCursor xC_left_ptr
 
@@ -363,8 +363,8 @@ main = do
     -- Bar Customization
 screen1LogHook :: D.Client -> PP
 screen1LogHook dbus = def
-    { ppOutput = dbusOutput dbus
-    , ppCurrent          = wrap ("%{B#2f2f4a80}%{F" ++ cPink ++ "}%{o"++ cPurpBlue ++"}%{A4:xdotool key alt+shift+Right:}%{A5:xdotool key alt+shift+Left:}  ") "  %{A}%{A}%{-o}%{B- F-}" -- Focused wkspc
+    { ppOutput = \s -> appendFile "/home/shadow/test_pbar" s >> dbusOutput dbus s
+    , ppCurrent          = wrap ("%{B#2f2f4a80}%{F" ++ cPink ++ "}%{o"++ cPurpBlue ++"}%{A4:xdotool key alt+shift+Right:}%{A5:xdotool key alt+shift+Left:} ") "  %{A}%{A}%{-o}%{B- F-}" -- Focused wkspc
     , ppVisible          = wrap ("%{F" ++ cBlue ++ "} ") " %{F-}" -- not working
     , ppVisibleNoWindows = Just (wrap ("%{F" ++ cMagenta ++ "} ") " %{F-}") -- not working
     , ppUrgent           = wrap ("%{F" ++ cRed ++ "}%{A4:xdotool key alt+shift+Right:}%{A5:xdotool key alt+shift+Left:} ") " %{A}%{A}%{F-}" -- Urgent wkspc
@@ -685,10 +685,18 @@ projects =
 ----------------------------------------------------------------------------}}}
 -- Key Bindings: {{{
 -------------------------------------------------------------------------------
+dirKeys        = ["j","k","h","l"]
+arrowKeys        = ["<D>","<U>","<L>","<R>"]
+dirs           = [ D,  U,  L,  R ]
+
+zipM  m ks as f   = zipWith (\k d -> (m ++ k, f d  )) ks as
+zipM' m ks as f b = zipWith (\k d -> (m ++ k, f d b)) ks as
+
 myKeys :: XConfig Layout -> M.Map (KeyMask, KeySym) (X ())
 myKeys conf@(XConfig {XMonad.modMask = modm}) = M.fromList $
         -- Xmonad ---------------------------------------------------------------------------------
     [ ((modm .|. controlMask,   xK_q     ), io (exitWith ExitSuccess)                   ) -- Quit
+    -- , ((modm .|. controlMask,   xK_0     ), spawn "echo " ++ myLogHook dbus ++ " | xxd")-- Troubleshoot LogHook
     , ((modm,                   xK_q     ), spawn "xmonad --recompile; xmonad --restart") -- Restart
     , ((mods.|.controlMask, xK_F12   ), spawn "~/.config/scripts/switch_gpu"        ) -- Switch GPU
     , ((modm .|. controlMask,   xK_b     ), spawn "killall polybar; polybar -c ~/.config/polybar/config-xmonad shadobar") -- Restart polybar
@@ -700,19 +708,29 @@ myKeys conf@(XConfig {XMonad.modMask = modm}) = M.fromList $
     , ((modm .|. shiftMask,     xK_b     ), sendMessage $ (MT.Toggle NOBORDERS)         ) -- Toggle Borders
         -- Layout ---------------------------------------------------------------------------------
     , ((modm,                   xK_space ), sendMessage NextLayout                      ) -- Rotate available layouts
-    , ((modm .|. shiftMask,     xK_space ), setLayout $ XMonad.layoutHook conf          ) -- Reset layouts on current workspace
+    , ((modm .|. shiftMask,     xK_space ), toSubl NextLayout                           ) -- Rotate available layouts
+    , ((modm .|. controlMask,   xK_space ), setLayout $ XMonad.layoutHook conf          ) -- Reset layouts on current workspace
     , ((modm,                   xK_f     ), sendMessage (MT.Toggle NBFULL) >> sendMessage ToggleStruts >> spawn "polybar-msg cmd toggle") -- Toggles Fullscreen
         -- Workspaces -----------------------------------------------------------------------------
     , ((modm .|. shiftMask,     xK_Right ), nextWS                                      ) -- Cycle Right
     , ((modm .|. shiftMask,     xK_Left  ), prevWS                                      ) -- Cycle Left
         -- Tabs -----------------------------------------------------------------------------------
-    -- , ((modm,                   xK_semicolon ), bindOn LD [("M Tab", windows W.focusUp),("", onGroup W.focusUp')]    ) -- Focus next tab up
-    -- , ((modm,                   xK_apostrophe), bindOn LD [("M Tab", windows W.focusDown),("", onGroup W.focusDown')]) -- Focus next tab down
-    , ((modm .|. shiftMask,     xK_semicolon ), windows W.swapUp                                                  ) -- Swap tab up
-    , ((modm .|. shiftMask,     xK_apostrophe), windows W.swapDown                                                ) -- Swap tab down
+    , ((modm,                   xK_semicolon ), CK.bindOn CK.LD [("M Tab", windows W.focusUp),("", onGroup W.focusUp')]    ) -- Focus next tab up
+    , ((modm,                   xK_apostrophe), CK.bindOn CK.LD [("M Tab", windows W.focusDown),("", onGroup W.focusDown')]) -- Focus next tab down
+    , ((modm .|. shiftMask,     xK_semicolon ), windows W.swapUp                        ) -- Swap tab up
+    , ((modm .|. shiftMask,     xK_apostrophe), windows W.swapDown                      ) -- Swap tab down
+    , ((modm .|. controlMask,   xK_h         ), sendMessage $ pullGroup L               ) -- Pull group from the left
+    , ((modm .|. controlMask,   xK_j         ), sendMessage $ pullGroup R               ) -- Pull group from the bottom
+    , ((modm .|. controlMask,   xK_k         ), sendMessage $ pullGroup U               ) -- Pull group from the top
+    , ((modm .|. controlMask,   xK_l         ), sendMessage $ pullGroup D               ) -- Pull group from the right
+    , ((modm,                   xK_z         ), withFocused (sendMessage . UnMerge)     ) -- Unmerges focused window from sublayout
+    , ((modm .|. shiftMask,     xK_z         ), withFocused (sendMessage . MergeAll)    ) -- Merges all windows into sublayout
         -- Windows --------------------------------------------------------------------------------
     , ((modm .|. shiftMask,     xK_c     ), kill                                        ) -- close window
     , ((modm,                   xK_n     ), refresh                                     ) -- Resize viewed windows to the correct size
+    , ((modm,                   xK_d     ), withFocused hideWindow                      ) -- Hide focused
+    , ((modm .|. shiftMask,     xK_d     ), popOldestHiddenWindow                       ) -- Show oldest hidden window
+    , ((modm,                   xK_a     ), toggleCopyToAll                             ) -- Sticky Window
     , ((modm,                   xK_Tab   ), windows W.focusDown                         ) -- Focus next
     , ((modm,                   xK_j     ), windows W.focusDown                         ) -- Focus next
     , ((modm,                   xK_k     ), windows W.focusUp                           ) -- Focus prev
@@ -741,7 +759,6 @@ myKeys conf@(XConfig {XMonad.modMask = modm}) = M.fromList $
         -- Brightness
     , ((0,                      0x1008FF02), spawn "xbacklight -inc 5"                  ) -- Inc Brightness
     , ((0,                      0x1008FF03), spawn "xbacklight -dec 5"                  ) -- Dec Brightness
-
         -- Open Applications -------------------------------------------------------------------------------------
     , ((mods,                       xK_b      ), spawn myBrowser                                         ) -- Browser
     , ((mods .|. controlMask,       xK_m      ), spawn (myTerminal ++ "calcurse")                        ) -- Calcurse
@@ -768,6 +785,7 @@ myKeys conf@(XConfig {XMonad.modMask = modm}) = M.fromList $
     , ((modm,               xK_slash), SM.submap $ searchEngineMap $ S.promptSearch shXPConfig'            ) -- Searches via prompt
     , ((modm .|. shiftMask, xK_slash), SM.submap $ searchEngineMap $ S.selectSearch                        ) -- Searches via clipboard
     ]
+    -- ++ [((modm, 0), zipM' dirKeys dirs windowGo True)]
     ++
     [((m .|. modm, k), windows $ onCurrentScreen f i)
         | (i, k) <- zip (workspaces' conf) [xK_1 .. xK_9]
@@ -792,6 +810,9 @@ myKeys conf@(XConfig {XMonad.modMask = modm}) = M.fromList $
              , ((0, xK_y), method S.youtube)
              , ((0, xK_z), method S.amazon)
              ]
+        toggleCopyToAll = wsContainingCopies >>= \ws -> case ws of
+                                                          [] -> windows copyToAll
+                                                          _  -> killAllOtherCopies
 
 ---------------------------------------------------------------------}}}
 -- Mouse bindings: {{{
