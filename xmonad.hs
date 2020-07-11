@@ -118,7 +118,7 @@ import XMonad.Util.WorkspaceCompare
 myBrowser       = "firefox " -- Set default browser
 myFilemngr      = "vifmrun" -- Set default file manager
 myFont          = "xft:Agave:pixelsize=14" -- Set font
-myLauncher      = "dmenu_run -fn 'Agave:size=15' -nb '#1B1B29' -nf '#8897F4' -sb '#2F2F4A' -sf '#ff79c6'" -- Set font
+myLauncher      = "dmenu_run -fn 'Agave:size=12' -nb '#1B1B29' -nf '#8897F4' -sb '#2F2F4A' -sf '#ff79c6'" -- Set font
 mySpacing       :: Int
 mySpacing       = 5 -- Set gaps between windows
 noSpacing       :: Int
@@ -287,7 +287,7 @@ myLayoutHook = fullScreenToggle
     myGaps      = gaps [(U, gap),(D, gap),(L,gap),(R,gap)]
 
     -- Layouts
-    tiled           = Tall nmaster delta ratio  -- Default Master/Stack (No Gaps) 
+    tiled           = avoidStruts(Tall nmaster delta ratio)  -- Default Master/Stack (No Gaps) 
 
     -- tabs            = named "Tabs"
     --     $ avoidStruts
@@ -354,7 +354,7 @@ main = do
         $ withNavigation2DConfig myNav2DConf
         $ withUrgencyHook NoUrgencyHook 
         $ ewmh 
-        $ myConfig { logHook = dynamicLogWithPP (myLogHook dbus), workspaces = withScreens nScreens [m0ws1,m0ws2,m0ws3,m0ws4,m0ws5,m0ws6,m0ws7,m0ws8,m0ws9] }
+        $ myConfig { workspaces = withScreens nScreens [m0ws1,m0ws2,m0ws3,m0ws4,m0ws5,m0ws6,m0ws7,m0ws8,m0ws9], logHook = dynamicLogWithPP (myLogHook dbus)}
 
     -- xmproc <- spawnPipe "xmobar -x 0 ~/.config/xmobar/xmobarrc"
 ----------------------------------------------------------------------------}}}
@@ -364,11 +364,11 @@ main = do
 screen1LogHook :: D.Client -> PP
 screen1LogHook dbus = def
     { ppOutput = \s -> appendFile "/home/shadow/test_pbar" s >> dbusOutput dbus s
-    , ppCurrent          = wrap ("%{B#2f2f4a80}%{F" ++ cPink ++ "}%{o"++ cPurpBlue ++"}%{A4:xdotool key alt+shift+Right:}%{A5:xdotool key alt+shift+Left:} ") "  %{A}%{A}%{-o}%{B- F-}" -- Focused wkspc
+    , ppCurrent          = wrap ("%{B#2f2f4a80}%{F" ++ cPink ++ "}%{o"++ cPurpBlue ++"}%{A4:xdotool key alt+shift+Right:}%{A5:xdotool key alt+shift+Left:}  ") "  %{A}%{A}%{-o}%{B- F-}" -- Focused wkspc
     , ppVisible          = wrap ("%{F" ++ cBlue ++ "} ") " %{F-}" -- not working
     , ppVisibleNoWindows = Just (wrap ("%{F" ++ cMagenta ++ "} ") " %{F-}") -- not working
     , ppUrgent           = wrap ("%{F" ++ cRed ++ "}%{A4:xdotool key alt+shift+Right:}%{A5:xdotool key alt+shift+Left:} ") " %{A}%{A}%{F-}" -- Urgent wkspc
-    , ppHidden           = wrap ("%{F" ++ cPurpBlue ++ "}%{A4:xdotool key alt+shift+Right:}%{A5:xdotool key alt+shift+Left:} ") " %{A}%{A}%{F-}" -- Hidden with windows
+    , ppHidden           = wrap ("%{F" ++ cPurpBlue ++ "}%{A4:xdotool key alt+shift+Right:}%{A5:xdotool key alt+shift+Left:}  ") " %{A}%{A}%{F-}" -- Hidden with windows
     , ppHiddenNoWindows  = wrap ("%{F" ++ cEmpty ++ "}%{A4:xdotool key alt+shift+Right:}%{A5:xdotool key alt+shift+Left:} ") " %{A}%{A}%{F-}" -- Hidden and empty
     , ppWsSep            = ""
     , ppSep              = " | "
