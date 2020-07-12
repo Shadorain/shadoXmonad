@@ -1,24 +1,15 @@
 
-xmonad.hs:297:11: error:
-    • Couldn't match expected type ‘DefaultShrinker -> Theme -> l a’
-                  with actual type ‘ModifiedLayout
-                                      (Decoration TabbedDecoration DefaultShrinker) Simplest Window’
-    • The function ‘simpleTabbed’ is applied to two arguments,
-      but its type ‘ModifiedLayout
-                      (Decoration TabbedDecoration DefaultShrinker) Simplest Window’
-      has none
-      In the second argument of ‘($)’, namely
-        ‘simpleTabbed shrinkText myTabTheme’
-      In the second argument of ‘($)’, namely
-        ‘addOverline $ simpleTabbed shrinkText myTabTheme’
-    • Relevant bindings include
-        tabs :: ModifiedLayout
-                  Rename
-                  (ModifiedLayout
-                     AvoidStruts
-                     (ModifiedLayout (Decoration NoFrillsDecoration DefaultShrinker) l))
-                  a
-          (bound at xmonad.hs:294:5)
+xmonad.hs:284:19: warning: [-Wdeprecations]
+    In the use of ‘spacing’ (imported from XMonad.Layout.Spacing):
+    Deprecated: "Use spacingRaw instead."
     |
-297 |         $ simpleTabbed shrinkText myTabTheme
-    |           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+284 |     mySpacing   = spacing gap
+    |                   ^^^^^^^
+
+xmonad.hs:553:18: warning: [-Wdeprecations]
+    In the use of ‘defaultGSConfig’
+    (imported from XMonad.Actions.GridSelect):
+    Deprecated: "Use def (from Data.Default, and re-exported from XMonad.Actions.GridSelect) instead."
+    |
+553 |     where conf = defaultGSConfig
+    |                  ^^^^^^^^^^^^^^^

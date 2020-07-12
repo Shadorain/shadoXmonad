@@ -1,4 +1,4 @@
-{-# LANGUAGE NoMonomorphismRestriction, AllowAmbiguousTypes, DeriveDataTypeable, MultiParamTypeClasses, TypeSynonymInstances #-} -- AllowAmbiguousTypes, DeriveDataTypeable, TypeSynonymInstances, MultiParamTypeClasses #-}
+{-# LANGUAGE NoMonomorphismRestriction, AllowAmbiguousTypes, DeriveDataTypeable, MultiParamTypeClasses, TypeSynonymInstances #-}
 -------------------------------------------------------------------------------
 -- Shadomonad Config --
 -------------------------------------------------------------------------------
@@ -289,10 +289,10 @@ myLayoutHook = fullScreenToggle
     mirrorTiled     = named "Mirror Tall" $ avoidStruts(Mirror tiled) -- Default master stack but horizontal (No Gaps)
     full            = named "Full" $ avoidStruts(fullBarToggle Full)
 
-    -- tabs            = named "Tabs" 
-    --     $ avoidStruts
-    --     $ addOverline
-    --     $ simpleTabbed shrinkText myTabTheme
+    tabs            = named "Tabs" 
+        $ avoidStruts
+        $ addOverline 
+        $ simpleTabbed
     
 
     masterTabbed    = named "M Tab" -- Custom layout with sublayout options
