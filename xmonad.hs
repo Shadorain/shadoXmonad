@@ -4,10 +4,8 @@
 -------------------------------------------------------------------------------
 -- TODO: add some bindings
     --   change layouts
-    --   change polybar
-    --   Fix up the example projects in there and make my own! 
-    --   also have some default apps open for certain workspaces!!!
-    --   fix tabbing
+    --   have alot more layouts and sublayout abilities
+    --   have some default apps open for certain workspaces!!!
 -------------------------------------------------------------------------------
 -- Imports: {{{
 -------------------------------------------------------------------------------
@@ -264,7 +262,7 @@ myLayoutHook = fullScreenToggle
              $ mirrorToggle
              $ reflectToggle
              $ hiddenWindows
-             $ tiled ||| Mirror tiled ||| fullscreenFocus Full ||| masterTabbed
+             $ tiled ||| mirrorTiled ||| full ||| masterTabbed
   where
     fullScreenToggle = mkToggle (single FULL)
     fullBarToggle    = mkToggle (single FULLBAR)
@@ -287,16 +285,17 @@ myLayoutHook = fullScreenToggle
     myGaps      = gaps [(U, gap),(D, gap),(L,gap),(R,gap)]
 
     -- Layouts
-    tiled           = avoidStruts(Tall nmaster delta ratio)  -- Default Master/Stack (No Gaps) 
+    tiled           = named "Tall" $ avoidStruts(Tall nmaster delta ratio)  -- Default Master/Stack (No Gaps) 
+    mirrorTiled     = named "Mirror Tall" $ avoidStruts(Mirror tiled) -- Default master stack but horizontal (No Gaps)
+    full            = named "Full" $ avoidStruts(fullBarToggle Full)
 
-    -- tabs            = named "Tabs"
+    -- tabs            = named "Tabs" 
     --     $ avoidStruts
     --     $ addOverline
-    --     $ addTabs shrinkText myTabTheme
-    --     $ Simplest
+    --     $ simpleTabbed shrinkText myTabTheme
     
 
-    masterTabbed    = named "M Tab"
+    masterTabbed    = named "M Tab" -- Custom layout with sublayout options
         $ avoidStruts
         $ windowNavigation
         $ addOverline
@@ -309,7 +308,7 @@ myLayoutHook = fullScreenToggle
                   (trimSuffixed 1 "W BSP |" $ hiddenWindows emptyBSP)
             stdLayouts = myGaps $ mySpacing
                 $ (suffixed "T2 |" $ Tall 1 (1/20) (1/2)) |||
-                  (suffixed "BSP |" $ hiddenWindows emptyBSP)
+                  (suffixed "BSP |" $ emptyBSP)
     -- $ boringWindows
     -- $ mySpacing' 0
     -- $ myGaps
@@ -333,11 +332,12 @@ myStartupHook = do
     setWMName "ShadoWM"
     spawn "feh --bg-scale --no-fehbg $HOME/Pictures/Backgrounds/forest.png &"
     spawn "picom --experimental-backends &"
-    spawn "killall polybar; polybar -c ~/.config/polybar/config-xmonad shadobar"
+    spawn "/usr/bin/emacs --daemon &"
+    spawn "killall polybar; polybar -c ~/.config/shadobar/config-xmonad shadobar"
     
     setDefaultCursor xC_left_ptr
 
-    -- spawn "killall polybar; polybar -c ~/.config/polybar/config-xmonad shadobar2"
+    -- spawn "killall polybar; polybar -c ~/.config/shadobar/config-xmonad shadobar2"
 ----------------------------------------------------------------------------}}}
 -- Main: {{{
 -------------------------------------------------------------------------------
@@ -363,7 +363,7 @@ main = do
     -- Bar Customization
 screen1LogHook :: D.Client -> PP
 screen1LogHook dbus = def
-    { ppOutput = \s -> appendFile "/home/shadow/test_pbar" s >> dbusOutput dbus s
+    { ppOutput = dbusOutput dbus -- \s -> appendFile "/home/shadow/test_pbar" s >> dbusOutput dbus s
     , ppCurrent          = wrap ("%{B#2f2f4a80}%{F" ++ cPink ++ "}%{o"++ cPurpBlue ++"}%{A4:xdotool key alt+shift+Right:}%{A5:xdotool key alt+shift+Left:}  ") "  %{A}%{A}%{-o}%{B- F-}" -- Focused wkspc
     , ppVisible          = wrap ("%{F" ++ cBlue ++ "} ") " %{F-}" -- not working
     , ppVisibleNoWindows = Just (wrap ("%{F" ++ cMagenta ++ "} ") " %{F-}") -- not working
@@ -374,10 +374,10 @@ screen1LogHook dbus = def
     , ppSep              = " | "
     -- , ppTitle = myAddSpaces 25
     , ppLayout = \x -> case x of     -- Changes layout name to be displayed
-                        "Tall" -> "%{A4:xdotool key alt+space:}%{A5:xdotool key alt+space:}T %{A}%{A}|"
-                        "Mirror Tall" -> "%{A4:xdotool key alt+space:}%{A5:xdotool key alt+space:}M %{A}%{A}|"
-                        "Full" -> "%{A4:xdotool key alt+space:}%{A5:xdotool key alt+space:}F %{A}%{A}|"
-                        "M Tab" -> "%{A4:xdotool key alt+space:}%{A5:xdotool key alt+space:}MT %{A}%{A}|"
+                        "Hidden Tall" -> "%{F#6a5acd}%{A4:xdotool key alt+space:}%{A5:xdotool key alt+space:}T %{A}%{A}%{F-}|"
+                        "Hidden Mirror Tall" -> "%{A4:xdotool key alt+space:}%{A5:xdotool key alt+space:}M %{A}%{A}|"
+                        "Hidden Full" -> "%{A4:xdotool key alt+space:}%{A5:xdotool key alt+space:}F %{A}%{A}|"
+                        "Hidden M Tab" -> "%{A4:xdotool key alt+space:}%{A5:xdotool key alt+space:}MT %{A}%{A}|"
                         _ -> "? |"
     , ppOrder = \(ws:l:_) -> [ws,l] -- [workspace, layout] (Removed window title)
     }
@@ -699,7 +699,7 @@ myKeys conf@(XConfig {XMonad.modMask = modm}) = M.fromList $
     -- , ((modm .|. controlMask,   xK_0     ), spawn "echo " ++ myLogHook dbus ++ " | xxd")-- Troubleshoot LogHook
     , ((modm,                   xK_q     ), spawn "xmonad --recompile; xmonad --restart") -- Restart
     , ((mods.|.controlMask, xK_F12   ), spawn "~/.config/scripts/switch_gpu"        ) -- Switch GPU
-    , ((modm .|. controlMask,   xK_b     ), spawn "killall polybar; polybar -c ~/.config/polybar/config-xmonad shadobar") -- Restart polybar
+    , ((modm .|. controlMask,   xK_b     ), spawn "killall polybar; polybar -c ~/.config/shadobar/config-xmonad shadobar") -- Restart polybar
     , ((mods,               xK_p     ), spawn "betterlockscreen -l blur -r 1920x1080  -b 0.2 -t 'Welcome back, Shado...'") -- Lock Screen
         -- Base -----------------------------------------------------------------------------------
     , ((modm .|. shiftMask,     xK_Return), spawn $ XMonad.terminal conf                ) -- Terminal
