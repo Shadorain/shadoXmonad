@@ -262,7 +262,7 @@ myLayoutHook = fullScreenToggle
              $ mirrorToggle
              $ reflectToggle
              $ hiddenWindows
-             $ tiled ||| mirrorTiled ||| full ||| masterTabbed
+             $ tiled ||| mirrorTiled ||| full ||| masterTabbed ||| tabs
   where
     fullScreenToggle = mkToggle (single FULL)
     fullBarToggle    = mkToggle (single FULLBAR)
