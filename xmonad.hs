@@ -331,8 +331,10 @@ myManageHook = composeAll
 myStartupHook = do
     setWMName "ShadoWM"
     spawn "feh --bg-scale --no-fehbg $HOME/Pictures/Backgrounds/forest.png &"
+    spawn "flashfocus &"
     spawn "picom --experimental-backends &"
     spawn "/usr/bin/emacs --daemon &"
+    spawn "killall xcape; xcape -t 200 -e 'Hyper_L=Tab;Hyper_R=backslash'" 
     spawn "killall polybar; polybar -c ~/.config/shadobar/config-xmonad shadobar"
     
     setDefaultCursor xC_left_ptr
@@ -763,12 +765,12 @@ myKeys conf@(XConfig {XMonad.modMask = modm}) = M.fromList $
     , ((mods,                       xK_b      ), spawn myBrowser                                         ) -- Browser
     , ((mods .|. controlMask,       xK_m      ), spawn (myTerminal ++ "calcurse")                        ) -- Calcurse
     , ((mods .|. shiftMask,         xK_d      ), spawn "discord"                                         ) -- Discord
-    , ((mods,                       xK_v      ), spawn (myTerminal ++ myFilemngr)                        ) -- File Manager
-    , ((mods,                       xK_a      ), spawn (myTerminal ++ "pulsemixer")                      ) -- Mixer
+    , ((mods .|. shiftMask,         xK_v      ), spawn (myTerminal ++ myFilemngr)                        ) -- File Manager
+    , ((mods .|. shiftMask,         xK_a      ), spawn (myTerminal ++ "pulsemixer")                      ) -- Mixer
     , ((mods .|. shiftMask,         xK_m      ), spawn (myTerminal ++ "ncmpcpp")                         ) -- Ncmpcpp
-    , ((mods,                       xK_w      ), spawn (myTerminal ++ "nmtui")                           ) -- Netork
-    , ((mods,                       xK_h      ), spawn (myTerminal ++ "htop")                            ) -- Processes
-    , ((mods,                       xK_s      ), spawn "~/.config/rofi/scripts/menu_powermenu.sh"        ) -- Processes
+    , ((mods .|. shiftMask,         xK_w      ), spawn (myTerminal ++ "nmtui")                           ) -- Netork
+    , ((mods .|. shiftMask,         xK_h      ), spawn (myTerminal ++ "htop")                            ) -- Processes
+    , ((mods .|. shiftMask,         xK_s      ), spawn "~/.config/rofi/scripts/menu_powermenu.sh"        ) -- Processes
         -- Screenshots -------------------------------------------------------------------------------------------
     , ((shiftMask .|. controlMask,  xK_Print  ), spawn "flameshot gui -p ~/Pictures/Screenshots"         ) -- Area
     , ((0,                          xK_Print  ), spawn "scrot '~/Pictures/Screenshots/%F_%T.png'"        ) -- Fullscreen
