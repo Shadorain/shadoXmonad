@@ -6,10 +6,10 @@ xmonad.hs:284:19: warning: [-Wdeprecations]
 284 |     mySpacing   = spacing gap
     |                   ^^^^^^^
 
-xmonad.hs:553:18: warning: [-Wdeprecations]
+xmonad.hs:555:18: warning: [-Wdeprecations]
     In the use of ‘defaultGSConfig’
     (imported from XMonad.Actions.GridSelect):
     Deprecated: "Use def (from Data.Default, and re-exported from XMonad.Actions.GridSelect) instead."
     |
-553 |     where conf = defaultGSConfig
+555 |     where conf = defaultGSConfig
     |                  ^^^^^^^^^^^^^^^

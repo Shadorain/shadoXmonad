@@ -262,7 +262,7 @@ myLayoutHook = fullScreenToggle
              $ mirrorToggle
              $ reflectToggle
              $ hiddenWindows
-             $ tiled ||| mirrorTiled ||| full ||| masterTabbed ||| tabs
+             $ tiled ||| monocle ||| masterTabbed ||| tabs
   where
     fullScreenToggle = mkToggle (single FULL)
     fullBarToggle    = mkToggle (single FULLBAR)
@@ -287,7 +287,7 @@ myLayoutHook = fullScreenToggle
     -- Layouts
     tiled           = named "Tall" $ avoidStruts(Tall nmaster delta ratio)  -- Default Master/Stack (No Gaps) 
     mirrorTiled     = named "Mirror Tall" $ avoidStruts(Mirror tiled) -- Default master stack but horizontal (No Gaps)
-    full            = named "Full" $ avoidStruts(fullBarToggle Full)
+    monocle         = named "Monocle" $ avoidStruts(fullScreenToggle Full)
 
     tabs            = named "Tabs" 
         $ avoidStruts
@@ -333,7 +333,7 @@ myStartupHook = do
     spawn "feh --bg-scale --no-fehbg $HOME/Pictures/Backgrounds/forest.png &"
     spawn "flashfocus &"
     spawn "picom --experimental-backends &"
-    spawn "/usr/bin/emacs --daemon &"
+    -- spawn "/usr/bin/emacs --daemon &"
     spawn "killall xcape; xcape -t 200 -e 'Hyper_L=Tab;Hyper_R=backslash'" 
     spawn "killall polybar; polybar -c ~/.config/shadobar/config-xmonad shadobar"
     
@@ -747,7 +747,9 @@ myKeys conf@(XConfig {XMonad.modMask = modm}) = M.fromList $
     , ((modm,                   xK_bracketleft), sendMessage (IncMasterN (-1))          ) -- Deincrement num of windows in master area
     , ((modm,                   xK_comma ), nextScreen                                  ) -- Focus next mon
     , ((modm,                   xK_period), prevScreen                                  ) -- Focus prev mon
-        -- Scratchpads ----------------------------------------------------------------------------
+        -- Layouts --------------------------------------------------------------------------------
+    , ((modm .|. shiftMask,     xK_t), sendMessage $ Toggle MIRROR                      ) -- Toggles Mirror Layout mode
+      -- Scratchpads ----------------------------------------------------------------------------
     , ((modm,                   xK_s), namedScratchpadAction myScratchPads "terminal"   ) -- Terminal Scrtchpd
     , ((modm .|. shiftMask,     xK_s), namedScratchpadAction myScratchPads "ncmpcpp"    ) -- Ncmpcpp Scrtchpd
         -- Multimedia (Volume, MPD) ---------------------------------------------------------------
@@ -782,7 +784,7 @@ myKeys conf@(XConfig {XMonad.modMask = modm}) = M.fromList $
     , ((modm .|. shiftMask,         xK_g      ), bringSelected $ mygridConfig myGridTheme                ) -- Grab and brind over grid item
     , ((modm .|. controlMask,       xK_g      ), spawnSelected' myAppGrid                                ) -- Custom program list
         -- Tree Select -------------------------------------------------------------------------------------------
-    , ((modm .|. shiftMask,         xK_t      ), tsAction myTreeSelConfig                                ) -- Custom program list
+    , ((modm .|. controlMask,       xK_t      ), tsAction myTreeSelConfig                                ) -- Custom program list
         -- Search Engine -----------------------------------------------------------------------------------------
     , ((modm,               xK_slash), SM.submap $ searchEngineMap $ S.promptSearch shXPConfig'            ) -- Searches via prompt
     , ((modm .|. shiftMask, xK_slash), SM.submap $ searchEngineMap $ S.selectSearch                        ) -- Searches via clipboard
