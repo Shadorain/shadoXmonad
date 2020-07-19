@@ -1,15 +1,6 @@
 
-xmonad.hs:284:19: warning: [-Wdeprecations]
-    In the use of ‘spacing’ (imported from XMonad.Layout.Spacing):
-    Deprecated: "Use spacingRaw instead."
+xmonad.hs:831:1: error:
+    parse error (possibly incorrect indentation or mismatched brackets)
     |
-284 |     mySpacing   = spacing gap
-    |                   ^^^^^^^
-
-xmonad.hs:555:18: warning: [-Wdeprecations]
-    In the use of ‘defaultGSConfig’
-    (imported from XMonad.Actions.GridSelect):
-    Deprecated: "Use def (from Data.Default, and re-exported from XMonad.Actions.GridSelect) instead."
-    |
-555 |     where conf = defaultGSConfig
-    |                  ^^^^^^^^^^^^^^^
+831 | myMouseBindings (XConfig {XMonad.modMask = modm}) = M.fromList $
+    | ^

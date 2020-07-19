@@ -1,11 +1,11 @@
-{-# LANGUAGE NoMonomorphismRestriction, AllowAmbiguousTypes, DeriveDataTypeable, MultiParamTypeClasses, TypeSynonymInstances #-}
+{-# LANGUAGE FlexibleContexts, NoMonomorphismRestriction, AllowAmbiguousTypes, DeriveDataTypeable, MultiParamTypeClasses, TypeSynonymInstances #-}
 -------------------------------------------------------------------------------
 -- Shadomonad Config --
 -------------------------------------------------------------------------------
--- TODO: add some bindings
-    --   change layouts
-    --   have alot more layouts and sublayout abilities
-    --   have some default apps open for certain workspaces!!!
+-- TODO: 
+  -- [ ] change layouts
+  -- [ ] have alot more layouts and sublayout abilities
+  -- [ ] have some default apps open for certain workspaces!!!
 -------------------------------------------------------------------------------
 -- Imports: {{{
 -------------------------------------------------------------------------------
@@ -21,6 +21,7 @@ import qualified XMonad.StackSet as W
     -- Actions
 import XMonad.Actions.CycleWS  --(moveTo, shiftTo, WSType(..), nextScreen, prevScreen)
 import qualified XMonad.Actions.ConditionalKeys  as CK
+import XMonad.Actions.Commands
 import XMonad.Actions.CopyWindow
 import XMonad.Actions.DynamicProjects
 -- import XMonad.Actions.DynamicWorkspaces
@@ -59,6 +60,8 @@ import XMonad.Hooks.WorkspaceHistory    -- (For tree select)
 
     -- Layouts
 import XMonad hiding ( (|||) )
+import XMonad.Layout hiding ( (|||) )
+import qualified XMonad.Layout.LayoutCombinators as LC
 import XMonad.Layout.Accordion
 import XMonad.Layout.BinarySpacePartition
 import XMonad.Layout.BoringWindows
@@ -75,8 +78,7 @@ import XMonad.Layout.Decoration
 import XMonad.Layout.Gaps
 import XMonad.Layout.Hidden
 import XMonad.Layout.IndependentScreens
-import XMonad.Layout.LayoutBuilder
--- import XMonad.Layout.LayoutCombinators
+-- import XMonad.Layout.LayoutBuilder
 import XMonad.Layout.LayoutModifier
 import XMonad.Layout.Master
 import XMonad.Layout.MultiToggle --(mkToggle, single, EOT(EOT), (??))
@@ -97,6 +99,7 @@ import qualified XMonad.Layout.MultiToggle as MT (Toggle(..))
 import XMonad.Prompt
 import XMonad.Prompt.Input
 import XMonad.Prompt.FuzzyMatch
+import XMonad.Prompt.Layout
 import XMonad.Prompt.Man
 import XMonad.Prompt.Shell (shellPrompt)
 import Control.Arrow (first)
@@ -262,40 +265,42 @@ myLayoutHook = fullScreenToggle
              $ mirrorToggle
              $ reflectToggle
              $ hiddenWindows
-             $ tiled ||| monocle ||| masterTabbed ||| tabs
+             $ tiled ||| monocle ||| shadoLayout
   where
     fullScreenToggle = mkToggle (single FULL)
     fullBarToggle    = mkToggle (single FULLBAR)
     mirrorToggle     = mkToggle (single MIRROR)
     reflectToggle    = mkToggle (single REFLECTX)
 
-    nmaster = 1 -- Default master count
-    ratio   = 1/2 -- Default size ratio of master:stack size
-    delta   = 3/100 -- Percent of screen inc/dec when resizing
+    nmaster          = 1 -- Default master count
+    ratio            = 1/2 -- Default size ratio of master:stack size
+    delta            = 3/100 -- Percent of screen inc/dec when resizing
 
-    named n     = renamed [(XMonad.Layout.Renamed.Replace n)]
-    trimNamed w n       = renamed [(XMonad.Layout.Renamed.CutWordsLeft w),
-                                   (XMonad.Layout.Renamed.PrependWords n)] 
-    suffixed n          = renamed [(XMonad.Layout.Renamed.AppendWords n)]
-    trimSuffixed w n    = renamed [(XMonad.Layout.Renamed.CutWordsRight w),
-                                   (XMonad.Layout.Renamed.AppendWords n)]
+    named n          = renamed [(XMonad.Layout.Renamed.Replace n)]
+    trimNamed w n    = renamed [(XMonad.Layout.Renamed.CutWordsLeft w),
+                                (XMonad.Layout.Renamed.PrependWords n)]
+    suffixed n       = renamed [(XMonad.Layout.Renamed.AppendWords n)]
+    trimSuffixed w n = renamed [(XMonad.Layout.Renamed.CutWordsRight w),
+                                (XMonad.Layout.Renamed.AppendWords n)]
 
-    addOverline = noFrillsDeco shrinkText overLineTheme
-    mySpacing   = spacing gap
-    myGaps      = gaps [(U, gap),(D, gap),(L,gap),(R,gap)]
+    addOverline      = noFrillsDeco shrinkText overLineTheme
+    mySpacing        = spacing gap
+    myGaps           = gaps [(U, gap),(D, gap),(L,gap),(R,gap)]
 
     -- Layouts
-    tiled           = named "Tall" $ avoidStruts(Tall nmaster delta ratio)  -- Default Master/Stack (No Gaps) 
-    mirrorTiled     = named "Mirror Tall" $ avoidStruts(Mirror tiled) -- Default master stack but horizontal (No Gaps)
-    monocle         = named "Monocle" $ avoidStruts(fullScreenToggle Full)
+    tiled            = named "Tall" $ avoidStruts(Tall nmaster delta ratio)  -- Default Master/Stack (No Gaps)
+    mirrorTiled      = named "Mirror Tall" $ avoidStruts(Mirror tiled) -- Default master stack but horizontal (No Gaps)
+    monocle          = named "Monocle" $ avoidStruts(fullScreenToggle Full)
 
-    tabs            = named "Tabs" 
+    masterTabbed     = named "Master Tabbed"
         $ avoidStruts
-        $ addOverline 
-        $ simpleTabbed
-    
+        $ addOverline
+        $ mySpacing
+        $ myGaps
+        $ mastered (1/100) (1/2)
+        $ tabbed shrinkText myTabTheme
 
-    masterTabbed    = named "M Tab" -- Custom layout with sublayout options
+    shadoLayout      = named "Shadolayout"
         $ avoidStruts
         $ windowNavigation
         $ addOverline
@@ -309,11 +314,6 @@ myLayoutHook = fullScreenToggle
             stdLayouts = myGaps $ mySpacing
                 $ (suffixed "T2 |" $ Tall 1 (1/20) (1/2)) |||
                   (suffixed "BSP |" $ emptyBSP)
-    -- $ boringWindows
-    -- $ mySpacing' 0
-    -- $ myGaps
-    -- $ mastered (1/100) (1/2)
-
 ----------------------------------------------------------------------------}}}
 -- Window rules: {{{
 -------------------------------------------------------------------------------
@@ -334,7 +334,7 @@ myStartupHook = do
     spawn "flashfocus &"
     spawn "picom --experimental-backends &"
     -- spawn "/usr/bin/emacs --daemon &"
-    spawn "killall xcape; xcape -t 200 -e 'Hyper_L=Tab;Hyper_R=backslash'" 
+    -- spawn "killall xcape; xcape -t 200 -e 'Hyper_L=Tab;Hyper_R=backslash'" 
     spawn "killall polybar; polybar -c ~/.config/shadobar/config-xmonad shadobar"
     
     setDefaultCursor xC_left_ptr
@@ -708,11 +708,14 @@ myKeys conf@(XConfig {XMonad.modMask = modm}) = M.fromList $
     , ((modm,                   xK_p     ), spawn myLauncher                            ) -- Dmenu
     , ((modm,                   xK_b     ), sendMessage ToggleStruts >> spawn "polybar-msg cmd toggle") -- Toggle Bar
     , ((modm .|. shiftMask,     xK_b     ), sendMessage $ (MT.Toggle NOBORDERS)         ) -- Toggle Borders
-        -- Layout ---------------------------------------------------------------------------------
+        -- Layouts --------------------------------------------------------------------------------
+    , ((modm,                   xK_t     ), withFocused $ windows . W.sink              ) -- Push win into tiling
+    , ((modm .|. shiftMask,     xK_t     ), sendMessage $ Toggle MIRROR                 ) -- Toggles Mirror Layout mode
     , ((modm,                   xK_space ), sendMessage NextLayout                      ) -- Rotate available layouts
     , ((modm .|. shiftMask,     xK_space ), toSubl NextLayout                           ) -- Rotate available layouts
     , ((modm .|. controlMask,   xK_space ), setLayout $ XMonad.layoutHook conf          ) -- Reset layouts on current workspace
-    , ((modm,                   xK_f     ), sendMessage (MT.Toggle NBFULL) >> sendMessage ToggleStruts >> spawn "polybar-msg cmd toggle") -- Toggles Fullscreen
+    -- , ((modm,                   xK_f     ), sendMessage $ LC.JumpToLayout "Hidden idk"  ) -- >> sendMessage ToggleStruts >> spawn "polybar-msg cmd toggle") -- Toggles Fullscreen
+    , ((modm,                   xK_grave ), layoutPrompt shXPConfig                     ) -- Layout Prompt
         -- Workspaces -----------------------------------------------------------------------------
     , ((modm .|. shiftMask,     xK_Right ), nextWS                                      ) -- Cycle Right
     , ((modm .|. shiftMask,     xK_Left  ), prevWS                                      ) -- Cycle Left
@@ -742,13 +745,10 @@ myKeys conf@(XConfig {XMonad.modMask = modm}) = M.fromList $
     , ((modm .|. shiftMask,     xK_k     ), windows W.swapUp                            ) -- Swap focused win with previous win
     , ((modm,                   xK_h     ), sendMessage Shrink                          ) -- Shrink master area
     , ((modm,                   xK_l     ), sendMessage Expand                          ) -- Expand master area
-    , ((modm,                   xK_t     ), withFocused $ windows . W.sink              ) -- Push win into tiling
     , ((modm,                   xK_bracketright), sendMessage (IncMasterN 1)            ) -- Increment num of windows in master area
     , ((modm,                   xK_bracketleft), sendMessage (IncMasterN (-1))          ) -- Deincrement num of windows in master area
     , ((modm,                   xK_comma ), nextScreen                                  ) -- Focus next mon
     , ((modm,                   xK_period), prevScreen                                  ) -- Focus prev mon
-        -- Layouts --------------------------------------------------------------------------------
-    , ((modm .|. shiftMask,     xK_t), sendMessage $ Toggle MIRROR                      ) -- Toggles Mirror Layout mode
       -- Scratchpads ----------------------------------------------------------------------------
     , ((modm,                   xK_s), namedScratchpadAction myScratchPads "terminal"   ) -- Terminal Scrtchpd
     , ((modm .|. shiftMask,     xK_s), namedScratchpadAction myScratchPads "ncmpcpp"    ) -- Ncmpcpp Scrtchpd
@@ -786,9 +786,10 @@ myKeys conf@(XConfig {XMonad.modMask = modm}) = M.fromList $
         -- Tree Select -------------------------------------------------------------------------------------------
     , ((modm .|. controlMask,       xK_t      ), tsAction myTreeSelConfig                                ) -- Custom program list
         -- Search Engine -----------------------------------------------------------------------------------------
-    , ((modm,               xK_slash), SM.submap $ searchEngineMap $ S.promptSearch shXPConfig'            ) -- Searches via prompt
-    , ((modm .|. shiftMask, xK_slash), SM.submap $ searchEngineMap $ S.selectSearch                        ) -- Searches via clipboard
-    ]
+    , ((modm,               xK_slash), SM.submap $ searchEngineMap $ S.promptSearch shXPConfig'          ) -- Searches via prompt
+    , ((modm .|. shiftMask, xK_slash), SM.submap $ searchEngineMap $ S.selectSearch                      ) -- Searches via clipboard
+        -- Prompts -----------------------------------------------------------------------------------------------
+    -- , ((mods,               xK_x    ), SM.submap $ promptMap $ promptSearch shXPConfig'          ) -- Searches via prompt
     -- ++ [((modm, 0), zipM' dirKeys dirs windowGo True)]
     ++
     [((m .|. modm, k), windows $ onCurrentScreen f i)
@@ -799,7 +800,7 @@ myKeys conf@(XConfig {XMonad.modMask = modm}) = M.fromList $
     [((m .|. modm, key), screenWorkspace sc >>= flip whenJust (windows . f))
         | (key, sc) <- zip [xK_w, xK_e, xK_r] [0..]
         , (f, m) <- [(W.view, 0), (W.shift, shiftMask)]]
-    where
+  where
         searchEngineMap method = M.fromList $
              [ ((0, xK_a), method archwiki)
              , ((0, xK_c), method cppref)
@@ -814,10 +815,11 @@ myKeys conf@(XConfig {XMonad.modMask = modm}) = M.fromList $
              , ((0, xK_y), method S.youtube)
              , ((0, xK_z), method S.amazon)
              ]
-        toggleCopyToAll = wsContainingCopies >>= \ws -> case ws of
-                                                          [] -> windows copyToAll
-                                                          _  -> killAllOtherCopies
-
+        -- promptMap = M.fromList $
+        --     [ ((0, xK_a), manPrompt)]
+    toggleCopyToAll = wsContainingCopies >>= \ws -> case ws of
+                                                        [] -> windows copyToAll
+                                                        _  -> killAllOtherCopies
 ---------------------------------------------------------------------}}}
 -- Mouse bindings: {{{
 ------------------------------------------------------------------------
