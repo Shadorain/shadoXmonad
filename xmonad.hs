@@ -60,7 +60,7 @@ import XMonad.Hooks.WorkspaceHistory    -- (For tree select)
 
     -- Layouts
 import XMonad hiding ( (|||) )
-import XMonad.Layout hiding ( (|||) )
+-- import XMonad.Layout hiding ( (|||) )
 import qualified XMonad.Layout.LayoutCombinators as LC
 import XMonad.Layout.Accordion
 import XMonad.Layout.BinarySpacePartition
@@ -119,7 +119,6 @@ import XMonad.Util.WorkspaceCompare
 myBrowser       = "firefox " -- Set default browser
 myFilemngr      = "vifmrun" -- Set default file manager
 myFont          = "xft:Agave:pixelsize=14" -- Set font
-myLauncher      = "dmenu_run -fn 'Agave:size=12' -nb '#1B1B29' -nf '#8897F4' -sb '#2F2F4A' -sf '#ff79c6'" -- Set font
 mySpacing       :: Int
 mySpacing       = 5 -- Set gaps between windows
 noSpacing       :: Int
@@ -128,6 +127,14 @@ myTerminal      = "kitty " -- Set default terminal
 myEditor        = "nvim" -- Set default text editor
 windowCount :: X (Maybe String)
 windowCount     = gets $ Just . show . length . W.integrate' . W.stack . W.workspace . W.current . windowset -- Get count of windows in selected workspace
+
+    -- Dmenu
+-- myDmenuFlags     = " -fn 'Agave:size=12' -nb '#1B1B29' -nf '#8897F4' -sb '#2F2F4A' -sf '#ff79c6'" -- Color flags for dmenu
+myLauncher       = "$HOME/.config/scripts/run-recent"-- Set main launcher
+myLauncherCalc   = "$HOME/.config/scripts/="-- Set main launcher
+myDmenuWebSearch = "$HOME/.config/scripts/dmenu_websearch" -- Dmenu web search prompt
+myDmenuTodo      = "$HOME/.config/scripts/todo" -- Dmenu todo prompt
+myDmenuClipMenu  = "clipmenu" -- Dmenu todo prompt
 
     -- Borders
 myBorderWidth   = 0
@@ -266,6 +273,7 @@ myLayoutHook = fullScreenToggle
              $ reflectToggle
              $ hiddenWindows
              $ tiled ||| monocle ||| shadoLayout
+
   where
     fullScreenToggle = mkToggle (single FULL)
     fullBarToggle    = mkToggle (single FULLBAR)
@@ -329,10 +337,10 @@ myManageHook = composeAll
 -------------------------------------------------------------------------------
 -- myStartupHook :: X ()
 myStartupHook = do
-    setWMName "ShadoWM"
+    setWMName "LG3D"
     spawn "feh --bg-scale --no-fehbg $HOME/Pictures/Backgrounds/forest.png &"
     spawn "flashfocus &"
-    spawn "picom --experimental-backends &"
+    spawn "killall picom; picom &"
     -- spawn "/usr/bin/emacs --daemon &"
     -- spawn "killall xcape; xcape -t 200 -e 'Hyper_L=Tab;Hyper_R=backslash'" 
     spawn "killall polybar; polybar -c ~/.config/shadobar/config-xmonad shadobar"
@@ -378,8 +386,9 @@ screen1LogHook dbus = def
     , ppLayout = \x -> case x of     -- Changes layout name to be displayed
                         "Hidden Tall" -> "%{F#6a5acd}%{A4:xdotool key alt+space:}%{A5:xdotool key alt+space:}T %{A}%{A}%{F-}|"
                         "Hidden Mirror Tall" -> "%{A4:xdotool key alt+space:}%{A5:xdotool key alt+space:}M %{A}%{A}|"
-                        "Hidden Full" -> "%{A4:xdotool key alt+space:}%{A5:xdotool key alt+space:}F %{A}%{A}|"
+                        "Hidden Monocle" -> "%{A4:xdotool key alt+space:}%{A5:xdotool key alt+space:}M %{A}%{A}|"
                         "Hidden M Tab" -> "%{A4:xdotool key alt+space:}%{A5:xdotool key alt+space:}MT %{A}%{A}|"
+                        "Hidden Shadolayout" -> "%{A4:xdotool key alt+space:}%{A5:xdotool key alt+space:}Shado %{A}%{A}|"
                         _ -> "? |"
     , ppOrder = \(ws:l:_) -> [ws,l] -- [workspace, layout] (Removed window title)
     }
@@ -569,11 +578,16 @@ cppref   = S.searchEngine "cppref"   "https://en.cppreference.com/mwiki/index.ph
 shXPConfig :: XPConfig
 shXPConfig = def
     { font                = myFont
-    , bgColor             = "#1B1B29"
-    , fgColor             = "#BFAAE3"
-    , bgHLight            = cPurpBlue
-    , fgHLight            = "#000000"
+    , bgColor             = "#0f0f17"
+    , fgColor             = "#b4a1f0"
+    , bgHLight            = "#0f0f17"
+    , fgHLight            = "#ff79c6"
     , borderColor         = "#9188ff"
+    -- , bgColor             = "#1B1B29"
+    -- , fgColor             = "#BFAAE3"
+    -- , bgHLight            = cPurpBlue
+    -- , fgHLight            = "#000000"
+    -- , borderColor         = "#9188ff"
     , promptBorderWidth   = 0
     , promptKeymap        = shXPKeymap
     , position            = Top
@@ -700,12 +714,14 @@ myKeys conf@(XConfig {XMonad.modMask = modm}) = M.fromList $
     [ ((modm .|. controlMask,   xK_q     ), io (exitWith ExitSuccess)                   ) -- Quit
     -- , ((modm .|. controlMask,   xK_0     ), spawn "echo " ++ myLogHook dbus ++ " | xxd")-- Troubleshoot LogHook
     , ((modm,                   xK_q     ), spawn "xmonad --recompile; xmonad --restart") -- Restart
-    , ((mods.|.controlMask, xK_F12   ), spawn "~/.config/scripts/switch_gpu"        ) -- Switch GPU
+    , ((mods.|.controlMask, xK_F12   ), spawn "~/.config/scripts/switch_gpu"            ) -- Switch GPU
     , ((modm .|. controlMask,   xK_b     ), spawn "killall polybar; polybar -c ~/.config/shadobar/config-xmonad shadobar") -- Restart polybar
+    , ((modm,                   xK_F9    ), spawn "killall picom") -- Kill picom 
     , ((mods,               xK_p     ), spawn "betterlockscreen -l blur -r 1920x1080  -b 0.2 -t 'Welcome back, Shado...'") -- Lock Screen
         -- Base -----------------------------------------------------------------------------------
     , ((modm .|. shiftMask,     xK_Return), spawn $ XMonad.terminal conf                ) -- Terminal
     , ((modm,                   xK_p     ), spawn myLauncher                            ) -- Dmenu
+    , ((modm .|. controlMask,   xK_p     ), spawn myLauncherCalc                        ) -- Calculator
     , ((modm,                   xK_b     ), sendMessage ToggleStruts >> spawn "polybar-msg cmd toggle") -- Toggle Bar
     , ((modm .|. shiftMask,     xK_b     ), sendMessage $ (MT.Toggle NOBORDERS)         ) -- Toggle Borders
         -- Layouts --------------------------------------------------------------------------------
@@ -761,8 +777,10 @@ myKeys conf@(XConfig {XMonad.modMask = modm}) = M.fromList $
     , ((0,                      0x1008FF16), spawn "mpc prev"                           ) -- Prev Track
     , ((0,                      0x1008FF17), spawn "mpc next"                           ) -- Next Track
         -- Brightness
-    , ((0,                      0x1008FF02), spawn "xbacklight -inc 5"                  ) -- Inc Brightness
-    , ((0,                      0x1008FF03), spawn "xbacklight -dec 5"                  ) -- Dec Brightness
+    , ((0,                      0x1008FF02), spawn "xbacklight -inc 2"                  ) -- Inc Brightness
+    , ((0,                      0x1008FF03), spawn "xbacklight -dec 2"                  ) -- Dec Brightness
+        -- Youtube Download --------------------------------------------------------------------------------------
+    , ((modm .|. shiftMask,         xK_y      ), spawn "ytdl"                                            ) -- Yt->Mpv script
         -- Open Applications -------------------------------------------------------------------------------------
     , ((mods,                       xK_b      ), spawn myBrowser                                         ) -- Browser
     , ((mods .|. controlMask,       xK_m      ), spawn (myTerminal ++ "calcurse")                        ) -- Calcurse
@@ -786,10 +804,11 @@ myKeys conf@(XConfig {XMonad.modMask = modm}) = M.fromList $
         -- Tree Select -------------------------------------------------------------------------------------------
     , ((modm .|. controlMask,       xK_t      ), tsAction myTreeSelConfig                                ) -- Custom program list
         -- Search Engine -----------------------------------------------------------------------------------------
-    , ((modm,               xK_slash), SM.submap $ searchEngineMap $ S.promptSearch shXPConfig'          ) -- Searches via prompt
-    , ((modm .|. shiftMask, xK_slash), SM.submap $ searchEngineMap $ S.selectSearch                      ) -- Searches via clipboard
+    , ((modm,                      xK_slash   ), SM.submap $ searchEngineMap $ S.promptSearch shXPConfig') -- Searches via prompt
+    , ((modm .|. shiftMask,        xK_slash   ), SM.submap $ searchEngineMap $ S.selectSearch            ) -- Searches via clipboard
         -- Prompts -----------------------------------------------------------------------------------------------
-    -- , ((mods,               xK_x    ), SM.submap $ promptMap $ promptSearch shXPConfig'          ) -- Searches via prompt
+    , ((mods,                      xK_x       ), SM.submap $ promptMap                                   ) -- Prompts submap
+    ]
     -- ++ [((modm, 0), zipM' dirKeys dirs windowGo True)]
     ++
     [((m .|. modm, k), windows $ onCurrentScreen f i)
@@ -800,7 +819,7 @@ myKeys conf@(XConfig {XMonad.modMask = modm}) = M.fromList $
     [((m .|. modm, key), screenWorkspace sc >>= flip whenJust (windows . f))
         | (key, sc) <- zip [xK_w, xK_e, xK_r] [0..]
         , (f, m) <- [(W.view, 0), (W.shift, shiftMask)]]
-  where
+    where
         searchEngineMap method = M.fromList $
              [ ((0, xK_a), method archwiki)
              , ((0, xK_c), method cppref)
@@ -815,9 +834,14 @@ myKeys conf@(XConfig {XMonad.modMask = modm}) = M.fromList $
              , ((0, xK_y), method S.youtube)
              , ((0, xK_z), method S.amazon)
              ]
-        -- promptMap = M.fromList $
-        --     [ ((0, xK_a), manPrompt)]
-    toggleCopyToAll = wsContainingCopies >>= \ws -> case ws of
+        promptMap = M.fromList $
+            [ ((0, xK_m), manPrompt shXPConfig)
+            , ((0, xK_l), layoutPrompt shXPConfig)
+            , ((0, xK_s), spawn myDmenuWebSearch)
+            , ((0, xK_t), spawn myDmenuTodo)
+            , ((0, xK_c), spawn myDmenuClipMenu)
+            ]
+        toggleCopyToAll = wsContainingCopies >>= \ws -> case ws of
                                                         [] -> windows copyToAll
                                                         _  -> killAllOtherCopies
 ---------------------------------------------------------------------}}}
