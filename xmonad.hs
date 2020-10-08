@@ -27,6 +27,7 @@ import XMonad.Actions.DynamicProjects
 -- import XMonad.Actions.DynamicWorkspaces
 import XMonad.Actions.GridSelect
 import XMonad.Actions.Navigation2D
+import XMonad.Actions.SpawnOn
 -- import XMonad.Actions.PerWorkspaceKeys
 import qualified XMonad.Actions.Submap           as SM
 import qualified XMonad.Actions.TreeSelect       as TS
@@ -35,7 +36,7 @@ import qualified XMonad.Actions.Search as S
 
     -- Data
 import Data.List
-import Data.Maybe (isJust)
+import Data.Maybe
 import Data.Ratio ((%))
 import Data.Tree
 import qualified Data.Map        as M
@@ -57,6 +58,7 @@ import XMonad.Hooks.Place
 import XMonad.Hooks.SetWMName
 import XMonad.Hooks.UrgencyHook
 import XMonad.Hooks.WorkspaceHistory    -- (For tree select)
+import XMonad.Hooks.InsertPosition
 
     -- Layouts
 import XMonad hiding ( (|||) )
@@ -92,6 +94,7 @@ import XMonad.Layout.SimpleDecoration
 import XMonad.Layout.Simplest
 import XMonad.Layout.Spacing
 import XMonad.Layout.WindowNavigation
+import XMonad.Layout.WindowArranger (windowArrange, WindowArrangerMsg(..))
 import qualified XMonad.Layout.ToggleLayouts as T
 import qualified XMonad.Layout.MultiToggle as MT (Toggle(..))
 
@@ -109,6 +112,7 @@ import XMonad.Util.Cursor
 import XMonad.Util.CustomKeys
 import XMonad.Util.NamedActions
 import XMonad.Util.NamedScratchpad
+import XMonad.Util.Scratchpad
 import XMonad.Util.Run
 import XMonad.Util.SpawnOnce
 import XMonad.Util.WorkspaceCompare
@@ -181,16 +185,19 @@ myConfig = def {
     mouseBindings      = myMouseBindings,
         -- Hooks/Layouts
     layoutHook         = myLayoutHook,
-    manageHook         = placeHook (smart (0.5, 0.5))
-                        <+> manageDocks
+    manageHook         = manageDocks
                         <+> myManageHook
-                        <+> manageHook def,
+                        <+> manageSpawn
+                        <+> insertPosition End Newer -- SET NEW WINDOW POSITION AND FOCUS
+                        <+> namedScratchpadManageHook myScratchPads,
+                        -- <+> manageHook def,
     -- logHook            = myLogHook,
     handleEventHook    = docksEventHook
                         <+> minimizeEventHook,
                         -- <+> fullscreenEventHook,
     startupHook        = myStartupHook
 }
+                        -- <+> (scratchpadManageHook $ W.RationalRect 0 0 1 (3/4))
 -----------------------------------------------------------------------------}}}
 -- Themes: {{{
 -------------------------------------------------------------------------------
@@ -272,7 +279,9 @@ myLayoutHook = fullScreenToggle
              $ mirrorToggle
              $ reflectToggle
              $ hiddenWindows
-             $ tiled ||| monocle ||| shadoLayout
+             $ windowArrange
+             $ fixFocus
+             $ shadoLayout ||| monocle ||| tiled
 
   where
     fullScreenToggle = mkToggle (single FULL)
@@ -316,34 +325,79 @@ myLayoutHook = fullScreenToggle
         $ subLayout [] (Simplest ||| Accordion)
         $ ifWider 1920 wideLayouts stdLayouts
         where
-            wideLayouts = myGaps $ mySpacing
-                $ (suffixed "W 3C |" $ ThreeColMid 1 (1/20) (1/2)) |||
-                  (trimSuffixed 1 "W BSP |" $ hiddenWindows emptyBSP)
             stdLayouts = myGaps $ mySpacing
                 $ (suffixed "T2 |" $ Tall 1 (1/20) (1/2)) |||
                   (suffixed "BSP |" $ emptyBSP)
+            wideLayouts = myGaps $ mySpacing
+                $ (suffixed "W 3C |" $ ThreeColMid 1 (1/20) (1/2)) |||
+                  (trimSuffixed 1 "W BSP |" $ hiddenWindows emptyBSP)
 ----------------------------------------------------------------------------}}}
 -- Window rules: {{{
 -------------------------------------------------------------------------------
-myManageHook = composeAll
-    [ className =? "lutris"         --> doFloat
-    , resource  =? "desktop_window" --> doIgnore
-    , resource  =? "kdesktop"       --> doIgnore ]
+myManageHook = (composeAll . concat $
+    [[ className =? "lutris"                  --> doFloat ]
+    ,[ className =? "wall-d"                  --> doFloat ]
+    ,[ className =? "Sxiv"                    --> doFloat ]
+    ,[ resource  =? "desktop_window"          --> doIgnore ]
+    ,[ resource  =? "kdesktop"                --> doIgnore ] ])
+    -- <+> (composeOne . concat $
+    -- [ [className     =? "ncmpcpp"        -?> doCenterFloat' ] ])
         where
             role = stringProperty "WM_WINDOW_ROLE"
+            doMaster = doF W.shiftMaster
+            doFloatAt' x y = doFloatAt x y <+> doMaster
+            doRectFloat' r = doRectFloat r <+> doMaster
+            doCenterFloat' = doCenterFloat <+> doMaster
+            keepMaster c = assertSlave <+> assertMaster where
+                assertSlave = fmap (/= c) className --> doF W.swapDown
+                assertMaster = className =? c --> doF W.swapMaster
+    -- ,[ title     =? "ncmpcpp-ueberzug"        -?> doFloatAt' (46/1680) (1-176/1050) ]
+    -- ,[ title     =? "ncmpcpp-ueberzug"        -?> doRectFloat' (W.RationalRect 0.65 0.65 0.3 0.3) ]
 
+----------------------------------------------------------------------------}}}
+-- Fix Focus: {{{
+-------------------------------------------------------------------------------
+data FixFocus a = FixFocus (Maybe a) deriving (Read, Show)
+instance LayoutModifier FixFocus Window where
+    modifyLayout (FixFocus mlf) ws@(W.Workspace id lay Nothing) r = runLayout ws r
+    modifyLayout (FixFocus Nothing) ws r = runLayout ws r
+    modifyLayout (FixFocus (Just lf)) (W.Workspace id lay (Just st)) r = do
+        let stack_f = W.focus st  -- get current stack's focus
+        mst <- gets (W.stack . W.workspace . W.current . windowset)
+        let mreal_f = maybe Nothing (Just . W.focus) mst -- get Maybe current real focus
+        is_rf_floating <- maybe (return False) (\rf -> withWindowSet $ return . M.member rf . W.floating) mreal_f -- real focused window is floating?
+        let new_stack_f = if is_rf_floating then lf else stack_f --if yes: replace stack's focus with our last saved focus
+        let new_st' = until (\s -> new_stack_f == W.focus s) W.focusUp' st -- new stack with focused new_stack_f
+        let new_st = if (new_stack_f `elem` (W.integrate st)) then new_st' else st -- use it only when it's possible to
+        runLayout (W.Workspace id lay (Just new_st)) r
+
+    redoLayout (FixFocus mlf) r Nothing wrs = return (wrs, Just $ FixFocus mlf)
+    redoLayout (FixFocus mlf) r (Just st) wrs = do
+        let stack_f = W.focus st  -- get current stack's focus
+        mst <- gets (W.stack . W.workspace . W.current . windowset)
+        let mreal_f = maybe Nothing (Just . W.focus) mst -- get Maybe current real focus
+        let crf_in_stack = maybe False ((flip elem) (W.integrate st)) mreal_f -- current real focus belongs to stack?
+        let new_saved_f = if crf_in_stack then fromJust mreal_f else stack_f -- if yes: replace saved focus
+        return (wrs, Just $ FixFocus $ Just new_saved_f)
+
+fixFocus :: LayoutClass l a => l a -> ModifiedLayout FixFocus l a
+fixFocus = ModifiedLayout $ FixFocus Nothing
 ----------------------------------------------------------------------------}}}
 -- Autostart: {{{
 -------------------------------------------------------------------------------
 -- myStartupHook :: X ()
 myStartupHook = do
     setWMName "LG3D"
+    -- spawn "feh --bg-scale --no-fehbg $HOME/Pictures/Backgrounds/pretty.jpg &"
     spawn "feh --bg-scale --no-fehbg $HOME/Pictures/Backgrounds/forest.png &"
     spawn "flashfocus &"
     spawn "killall picom; picom &"
     -- spawn "/usr/bin/emacs --daemon &"
     -- spawn "killall xcape; xcape -t 200 -e 'Hyper_L=Tab;Hyper_R=backslash'" 
     spawn "killall polybar; polybar -c ~/.config/shadobar/config-xmonad shadobar"
+    spawn "killall udiskie; udiskie -s -a -n &"
+    spawn "sleep 1; killall stalonetray; stalonetray &"
+    spawn "sleep 1; killall nm-applet; nm-applet &"
     
     setDefaultCursor xC_left_ptr
 
@@ -652,25 +706,24 @@ shXPKeymap = M.fromList $
 -------------------------------------------------------------------------------
 myScratchPads :: [NamedScratchpad]
 myScratchPads = [ NS "terminal" spawnTerm findTerm manageTerm
-                , NS "ncmpcpp" spawnNcmpcpp findNcmpcpp manageNcmpcpp
-                ]
+                , NS "ncmpcpp" spawnNcmpcpp findNcmpcpp manageNcmpcpp ]
     where
         spawnTerm    = myTerminal ++ " --name scratchpad"
         findTerm     = resource =? "scratchpad"
         manageTerm   = customFloating $ W.RationalRect l t w h
                        where
-                       h = 0.9
-                       w = 0.9
-                       t = 0.95 -h
-                       l = 0.95 -w
-        spawnNcmpcpp  = myTerminal ++ " --name ncmpcpp 'ncmpcpp'"
-        findNcmpcpp   = resource =? "ncmpcpp"
+                       l = 0.2
+                       t = 0.2
+                       w = 0.6
+                       h = 0.6
+        spawnNcmpcpp  = myTerminal ++ " --name 'ncmpcpp_scratch' '/home/shadow/.ncmpcpp/ncmpcpp-ueberzug/ncmpcpp-ueberzug'"
+        findNcmpcpp   = resource =? "ncmpcpp_scratch"
         manageNcmpcpp = customFloating $ W.RationalRect l t w h
                        where
-                       h = 0.9
-                       w = 0.9
-                       t = 0.95 -h
-                       l = 0.95 -w
+                       l = 0.2
+                       t = 0.3
+                       w = 0.6
+                       h = 0.4
 
 ----------------------------------------------------------------------------}}}
 -- Projects: {{{
@@ -724,6 +777,8 @@ myKeys conf@(XConfig {XMonad.modMask = modm}) = M.fromList $
     , ((modm .|. controlMask,   xK_p     ), spawn myLauncherCalc                        ) -- Calculator
     , ((modm,                   xK_b     ), sendMessage ToggleStruts >> spawn "polybar-msg cmd toggle") -- Toggle Bar
     , ((modm .|. shiftMask,     xK_b     ), sendMessage $ (MT.Toggle NOBORDERS)         ) -- Toggle Borders
+    , ((modm,     xK_KP_Add     ), spawn "feh --bg-scale --no-fehbg $HOME/Pictures/Backgrounds/pretty.jpg &" )
+    , ((modm,     xK_KP_Subtract), spawn "feh --bg-scale --no-fehbg $HOME/Pictures/Backgrounds/forest.png &" )
         -- Layouts --------------------------------------------------------------------------------
     , ((modm,                   xK_t     ), withFocused $ windows . W.sink              ) -- Push win into tiling
     , ((modm .|. shiftMask,     xK_t     ), sendMessage $ Toggle MIRROR                 ) -- Toggles Mirror Layout mode
@@ -761,6 +816,8 @@ myKeys conf@(XConfig {XMonad.modMask = modm}) = M.fromList $
     , ((modm .|. shiftMask,     xK_k     ), windows W.swapUp                            ) -- Swap focused win with previous win
     , ((modm,                   xK_h     ), sendMessage Shrink                          ) -- Shrink master area
     , ((modm,                   xK_l     ), sendMessage Expand                          ) -- Expand master area
+    , ((modm .|. shiftMask,     xK_h     ), sendMessage MirrorShrink                    ) -- Shrink vertically
+    , ((modm .|. shiftMask,     xK_l     ), sendMessage MirrorExpand                    ) -- Expand vertically
     , ((modm,                   xK_bracketright), sendMessage (IncMasterN 1)            ) -- Increment num of windows in master area
     , ((modm,                   xK_bracketleft), sendMessage (IncMasterN (-1))          ) -- Deincrement num of windows in master area
     , ((modm,                   xK_comma ), nextScreen                                  ) -- Focus next mon
@@ -782,6 +839,7 @@ myKeys conf@(XConfig {XMonad.modMask = modm}) = M.fromList $
         -- Youtube Download --------------------------------------------------------------------------------------
     , ((modm .|. shiftMask,         xK_y      ), spawn "ytdl"                                            ) -- Yt->Mpv script
         -- Open Applications -------------------------------------------------------------------------------------
+    , ((modm,                       xK_KP_Multiply), spawn "wall-d ~/Pictures/Backgrounds"               ) -- Wall-d
     , ((mods,                       xK_b      ), spawn myBrowser                                         ) -- Browser
     , ((mods .|. controlMask,       xK_m      ), spawn (myTerminal ++ "calcurse")                        ) -- Calcurse
     , ((mods .|. shiftMask,         xK_d      ), spawn "discord"                                         ) -- Discord
@@ -791,6 +849,9 @@ myKeys conf@(XConfig {XMonad.modMask = modm}) = M.fromList $
     , ((mods .|. shiftMask,         xK_w      ), spawn (myTerminal ++ "nmtui")                           ) -- Netork
     , ((mods .|. shiftMask,         xK_h      ), spawn (myTerminal ++ "htop")                            ) -- Processes
     , ((mods .|. shiftMask,         xK_s      ), spawn "~/.config/rofi/scripts/menu_powermenu.sh"        ) -- Processes
+    , ((mods,                       xK_e      ), spawn "emacs"                                           ) -- Emacs
+    , ((mods .|. controlMask,       xK_e      ), spawn (myTerminal ++ "emacs -nw")                       ) -- Emacs NW
+    , ((mods,                       xK_g      ), spawn "ghidra"                                          ) -- Ghidra
         -- Screenshots -------------------------------------------------------------------------------------------
     , ((shiftMask .|. controlMask,  xK_Print  ), spawn "flameshot gui -p ~/Pictures/Screenshots"         ) -- Area
     , ((0,                          xK_Print  ), spawn "scrot '~/Pictures/Screenshots/%F_%T.png'"        ) -- Fullscreen
