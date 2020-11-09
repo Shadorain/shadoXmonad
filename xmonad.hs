@@ -127,7 +127,8 @@ mySpacing       :: Int
 mySpacing       = 5 -- Set gaps between windows
 noSpacing       :: Int
 noSpacing       = 0 -- Set nogaps between windows
-myTerminal      = "kitty " -- Set default terminal
+-- myTerminal      = "kitty " -- Set default terminal
+myTerminal      = "st " -- Set default terminal
 myEditor        = "nvim" -- Set default text editor
 windowCount :: X (Maybe String)
 windowCount     = gets $ Just . show . length . W.integrate' . W.stack . W.workspace . W.current . windowset -- Get count of windows in selected workspace
@@ -168,6 +169,11 @@ m0ws6 = "六" -- m1ws6 = "dev" -- " " -- Dev
 m0ws7 = "七" -- m1ws7 = "hsk" -- " " -- Haskell
 m0ws8 = "八" -- m1ws8 = "clg" -- " " -- C lang
 m0ws9 = "九" -- m1ws9 = "rev" -- " " -- Reversing
+m0ws10 = "NSP"
+
+    -- My Scripts
+-- %{A2:setsid -f \"$TERMINAL\" calcurse -D ~/.config/calcurse:}%{A3:setsid -f \"$TERMINAL\" ~/vimwiki/diary/$YEAR-$MONTH-$DAY.md:}%time%%{A}%{A}%{A}"
+dateScript = "~/.config/scripts/datenotif"
 ----------------------------------------------------------------------------}}}
 -- Defaults: {{{
 -------------------------------------------------------------------------------
@@ -326,7 +332,7 @@ myLayoutHook = fullScreenToggle
         $ ifWider 1920 wideLayouts stdLayouts
         where
             stdLayouts = myGaps $ mySpacing
-                $ (suffixed "T2 |" $ Tall 1 (1/20) (1/2)) |||
+                $ (suffixed "T2 |" $ ResizableTall 1 (6/100) (1/2) []) |||
                   (suffixed "BSP |" $ emptyBSP)
             wideLayouts = myGaps $ mySpacing
                 $ (suffixed "W 3C |" $ ThreeColMid 1 (1/20) (1/2)) |||
@@ -392,12 +398,13 @@ myStartupHook = do
     spawn "feh --bg-scale --no-fehbg $HOME/Pictures/Backgrounds/forest.png &"
     spawn "flashfocus &"
     spawn "killall picom; picom &"
-    -- spawn "/usr/bin/emacs --daemon &"
+    spawn "/usr/bin/emacs --daemon &"
     -- spawn "killall xcape; xcape -t 200 -e 'Hyper_L=Tab;Hyper_R=backslash'" 
     spawn "killall polybar; polybar -c ~/.config/shadobar/config-xmonad shadobar"
     spawn "killall udiskie; udiskie -s -a -n &"
     spawn "sleep 1; killall stalonetray; stalonetray &"
     spawn "sleep 1; killall nm-applet; nm-applet &"
+    spawn "killall blueprox; blueprox & ; blueprox &"
     
     setDefaultCursor xC_left_ptr
 
@@ -407,7 +414,7 @@ myStartupHook = do
 -------------------------------------------------------------------------------
 main :: IO ()
 main = do
-    nScreens <- countScreens -- Gets current screen count
+    -- nScreens <- countScreens -- Gets current screen count
     dbus <- D.connectSession
     D.requestName dbus (D.busName_ "org.xmonad.Log")
         [D.nameAllowReplacement, D.nameReplaceExisting, D.nameDoNotQueue]
@@ -418,7 +425,7 @@ main = do
         $ withNavigation2DConfig myNav2DConf
         $ withUrgencyHook NoUrgencyHook 
         $ ewmh 
-        $ myConfig { workspaces = withScreens nScreens [m0ws1,m0ws2,m0ws3,m0ws4,m0ws5,m0ws6,m0ws7,m0ws8,m0ws9], logHook = dynamicLogWithPP (myLogHook dbus)}
+        $ myConfig { workspaces = withScreens 9 [m0ws1,m0ws2,m0ws3,m0ws4,m0ws5,m0ws6,m0ws7,m0ws8,m0ws9], logHook = dynamicLogWithPP (myLogHook dbus) }
 
     -- xmproc <- spawnPipe "xmobar -x 0 ~/.config/xmobar/xmobarrc"
 ----------------------------------------------------------------------------}}}
@@ -708,7 +715,7 @@ myScratchPads :: [NamedScratchpad]
 myScratchPads = [ NS "terminal" spawnTerm findTerm manageTerm
                 , NS "ncmpcpp" spawnNcmpcpp findNcmpcpp manageNcmpcpp ]
     where
-        spawnTerm    = myTerminal ++ " --name scratchpad"
+        spawnTerm    = myTerminal ++ " -n scratchpad"
         findTerm     = resource =? "scratchpad"
         manageTerm   = customFloating $ W.RationalRect l t w h
                        where
@@ -716,7 +723,7 @@ myScratchPads = [ NS "terminal" spawnTerm findTerm manageTerm
                        t = 0.2
                        w = 0.6
                        h = 0.6
-        spawnNcmpcpp  = myTerminal ++ " --name 'ncmpcpp_scratch' '/home/shadow/.ncmpcpp/ncmpcpp-ueberzug/ncmpcpp-ueberzug'"
+        spawnNcmpcpp  = myTerminal ++ " -n 'ncmpcpp_scratch' '/home/shadow/.ncmpcpp/ncmpcpp-ueberzug/ncmpcpp-ueberzug'"
         findNcmpcpp   = resource =? "ncmpcpp_scratch"
         manageNcmpcpp = customFloating $ W.RationalRect l t w h
                        where
@@ -765,12 +772,15 @@ myKeys :: XConfig Layout -> M.Map (KeyMask, KeySym) (X ())
 myKeys conf@(XConfig {XMonad.modMask = modm}) = M.fromList $
         -- Xmonad ---------------------------------------------------------------------------------
     [ ((modm .|. controlMask,   xK_q     ), io (exitWith ExitSuccess)                   ) -- Quit
-    -- , ((modm .|. controlMask,   xK_0     ), spawn "echo " ++ myLogHook dbus ++ " | xxd")-- Troubleshoot LogHook
     , ((modm,                   xK_q     ), spawn "xmonad --recompile; xmonad --restart") -- Restart
-    , ((mods.|.controlMask, xK_F12   ), spawn "~/.config/scripts/switch_gpu"            ) -- Switch GPU
+    , ((mods.|.controlMask,     xK_F12   ), spawn "~/.config/scripts/switch_gpu"            ) -- Switch GPU
     , ((modm .|. controlMask,   xK_b     ), spawn "killall polybar; polybar -c ~/.config/shadobar/config-xmonad shadobar") -- Restart polybar
     , ((modm,                   xK_F9    ), spawn "killall picom") -- Kill picom 
-    , ((mods,               xK_p     ), spawn "betterlockscreen -l blur -r 1920x1080  -b 0.2 -t 'Welcome back, Shado...'") -- Lock Screen
+    , ((mods .|. controlMask,   xK_d     ), spawn "killall Discord") -- Kill Discord
+    , ((mods,                   xK_p     ), spawn "betterlockscreen -l blur -r 1920x1080 -b 0.2 -t 'Welcome back, Shado...'") -- Lock Screen
+        -- Session --------------------------------------------------------------------------------
+    , ((modm .|. shiftMask,     xK_m     ), spawn "lwsm save"                           ) -- Save Session
+    , ((modm .|. controlMask,   xK_m     ), spawn "lwsm restore"                        ) -- Restore session
         -- Base -----------------------------------------------------------------------------------
     , ((modm .|. shiftMask,     xK_Return), spawn $ XMonad.terminal conf                ) -- Terminal
     , ((modm,                   xK_p     ), spawn myLauncher                            ) -- Dmenu
@@ -780,6 +790,7 @@ myKeys conf@(XConfig {XMonad.modMask = modm}) = M.fromList $
     , ((modm .|. controlMask,   xK_n     ), spawn (myTerminal ++ "nmcli dev wifi connect GENEVASTUDENT")     ) -- Restart net GENEVASTUDENT
     , ((modm,     xK_KP_Add     ), spawn "feh --bg-scale --no-fehbg $HOME/Pictures/Backgrounds/pretty.jpg &" )
     , ((modm,     xK_KP_Subtract), spawn "feh --bg-scale --no-fehbg $HOME/Pictures/Backgrounds/forest.png &" )
+    , ((mods,                   xK_d     ), spawn dateScript                            ) -- Display date
         -- Layouts --------------------------------------------------------------------------------
     , ((modm,                   xK_t     ), withFocused $ windows . W.sink              ) -- Push win into tiling
     , ((modm .|. shiftMask,     xK_t     ), sendMessage $ Toggle MIRROR                 ) -- Toggles Mirror Layout mode
@@ -850,7 +861,8 @@ myKeys conf@(XConfig {XMonad.modMask = modm}) = M.fromList $
     , ((mods .|. shiftMask,         xK_w      ), spawn (myTerminal ++ "nmtui")                           ) -- Netork
     , ((mods .|. shiftMask,         xK_h      ), spawn (myTerminal ++ "htop")                            ) -- Processes
     , ((mods .|. shiftMask,         xK_s      ), spawn "~/.config/rofi/scripts/menu_powermenu.sh"        ) -- Processes
-    , ((mods,                       xK_e      ), spawn "emacs"                                           ) -- Emacs
+    , ((mods,                       xK_e      ), spawn "emacsclient -c"                                     ) -- Emacsclient
+    , ((mods .|. shiftMask,         xK_e      ), spawn "emacs"                                           ) -- Emacs
     , ((mods .|. controlMask,       xK_e      ), spawn (myTerminal ++ "emacs -nw")                       ) -- Emacs NW
     , ((mods,                       xK_g      ), spawn "ghidra"                                          ) -- Ghidra
         -- Screenshots -------------------------------------------------------------------------------------------
