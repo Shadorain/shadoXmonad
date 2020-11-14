@@ -174,6 +174,7 @@ m0ws10 = "NSP"
     -- My Scripts
 -- %{A2:setsid -f \"$TERMINAL\" calcurse -D ~/.config/calcurse:}%{A3:setsid -f \"$TERMINAL\" ~/vimwiki/diary/$YEAR-$MONTH-$DAY.md:}%time%%{A}%{A}%{A}"
 dateScript = "~/.config/scripts/datenotif"
+bigO = "sxiv -o -r -b -g 1000x700+450+200 ~/Pictures/bigocheatsheet.png &"
 ----------------------------------------------------------------------------}}}
 -- Defaults: {{{
 -------------------------------------------------------------------------------
@@ -395,15 +396,18 @@ fixFocus = ModifiedLayout $ FixFocus Nothing
 myStartupHook = do
     setWMName "LG3D"
     -- spawn "feh --bg-scale --no-fehbg $HOME/Pictures/Backgrounds/pretty.jpg &"
+    -- spawn "feh --bg-scale --no-fehbg $HOME/Pictures/Backgrounds/purps.png &"
+    -- spawn "feh --bg-scale --no-fehbg $HOME/Pictures/Backgrounds/winter-sun2.jpg &"
     spawn "feh --bg-scale --no-fehbg $HOME/Pictures/Backgrounds/forest.png &"
+    -- spawn "feh --bg-scale --no-fehbg $HOME/Pictures/Backgrounds/ghosts3-2.jpg &"
     spawn "flashfocus &"
     spawn "killall picom; picom &"
     spawn "/usr/bin/emacs --daemon &"
     -- spawn "killall xcape; xcape -t 200 -e 'Hyper_L=Tab;Hyper_R=backslash'" 
     spawn "killall polybar; polybar -c ~/.config/shadobar/config-xmonad shadobar"
     spawn "killall udiskie; udiskie -s -a -n &"
-    spawn "sleep 1; killall stalonetray; stalonetray &"
-    spawn "sleep 1; killall nm-applet; nm-applet &"
+    -- spawn "sleep 1; killall stalonetray; stalonetray &"
+    -- spawn "sleep 1; killall nm-applet; nm-applet &"
     spawn "killall blueprox; blueprox & ; blueprox &"
     
     setDefaultCursor xC_left_ptr
@@ -790,7 +794,10 @@ myKeys conf@(XConfig {XMonad.modMask = modm}) = M.fromList $
     , ((modm .|. controlMask,   xK_n     ), spawn (myTerminal ++ "nmcli dev wifi connect GENEVASTUDENT")     ) -- Restart net GENEVASTUDENT
     , ((modm,     xK_KP_Add     ), spawn "feh --bg-scale --no-fehbg $HOME/Pictures/Backgrounds/pretty.jpg &" )
     , ((modm,     xK_KP_Subtract), spawn "feh --bg-scale --no-fehbg $HOME/Pictures/Backgrounds/forest.png &" )
+    , ((modm,     xK_KP_Decimal ), spawn "feh --bg-scale --no-fehbg $HOME/Pictures/Backgrounds/winter-sun2.jpg &" )
+    , ((modm,     xK_KP_0       ), spawn "feh --bg-scale --no-fehbg $HOME/Pictures/Backgrounds/purps.png &" )
     , ((mods,                   xK_d     ), spawn dateScript                            ) -- Display date
+    , ((modm,                   xK_o     ), spawn bigO                  ) -- BigOcheatsheet
         -- Layouts --------------------------------------------------------------------------------
     , ((modm,                   xK_t     ), withFocused $ windows . W.sink              ) -- Push win into tiling
     , ((modm .|. shiftMask,     xK_t     ), sendMessage $ Toggle MIRROR                 ) -- Toggles Mirror Layout mode
