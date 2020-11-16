@@ -169,7 +169,6 @@ m0ws6 = "六" -- m1ws6 = "dev" -- " " -- Dev
 m0ws7 = "七" -- m1ws7 = "hsk" -- " " -- Haskell
 m0ws8 = "八" -- m1ws8 = "clg" -- " " -- C lang
 m0ws9 = "九" -- m1ws9 = "rev" -- " " -- Reversing
-m0ws10 = "NSP"
 
     -- My Scripts
 -- %{A2:setsid -f \"$TERMINAL\" calcurse -D ~/.config/calcurse:}%{A3:setsid -f \"$TERMINAL\" ~/vimwiki/diary/$YEAR-$MONTH-$DAY.md:}%time%%{A}%{A}%{A}"
@@ -400,12 +399,15 @@ myStartupHook = do
     -- spawn "feh --bg-scale --no-fehbg $HOME/Pictures/Backgrounds/winter-sun2.jpg &"
     spawn "feh --bg-scale --no-fehbg $HOME/Pictures/Backgrounds/forest.png &"
     -- spawn "feh --bg-scale --no-fehbg $HOME/Pictures/Backgrounds/ghosts3-2.jpg &"
+    spawn "/home/shadow/.gem/ruby/2.7.0/bin/fusuma &"
     spawn "flashfocus &"
-    spawn "killall picom; picom &"
+    spawn "killall picom; picom --experimental-backends &"
     spawn "/usr/bin/emacs --daemon &"
     -- spawn "killall xcape; xcape -t 200 -e 'Hyper_L=Tab;Hyper_R=backslash'" 
     spawn "killall polybar; polybar -c ~/.config/shadobar/config-xmonad shadobar"
     spawn "killall udiskie; udiskie -s -a -n &"
+    spawn "xset r rate 200 30"
+    spawn "killall dunst"
     -- spawn "sleep 1; killall stalonetray; stalonetray &"
     -- spawn "sleep 1; killall nm-applet; nm-applet &"
     spawn "killall blueprox; blueprox & ; blueprox &"
@@ -418,7 +420,7 @@ myStartupHook = do
 -------------------------------------------------------------------------------
 main :: IO ()
 main = do
-    -- nScreens <- countScreens -- Gets current screen count
+    nScreens <- countScreens -- Gets current screen count
     dbus <- D.connectSession
     D.requestName dbus (D.busName_ "org.xmonad.Log")
         [D.nameAllowReplacement, D.nameReplaceExisting, D.nameDoNotQueue]
@@ -429,7 +431,7 @@ main = do
         $ withNavigation2DConfig myNav2DConf
         $ withUrgencyHook NoUrgencyHook 
         $ ewmh 
-        $ myConfig { workspaces = withScreens 9 [m0ws1,m0ws2,m0ws3,m0ws4,m0ws5,m0ws6,m0ws7,m0ws8,m0ws9], logHook = dynamicLogWithPP (myLogHook dbus) }
+        $ myConfig { workspaces = withScreens nScreens [m0ws1,m0ws2,m0ws3,m0ws4,m0ws5,m0ws6,m0ws7,m0ws8,m0ws9], logHook = dynamicLogWithPP (myLogHook dbus) }
 
     -- xmproc <- spawnPipe "xmobar -x 0 ~/.config/xmobar/xmobarrc"
 ----------------------------------------------------------------------------}}}
@@ -780,6 +782,7 @@ myKeys conf@(XConfig {XMonad.modMask = modm}) = M.fromList $
     , ((mods.|.controlMask,     xK_F12   ), spawn "~/.config/scripts/switch_gpu"            ) -- Switch GPU
     , ((modm .|. controlMask,   xK_b     ), spawn "killall polybar; polybar -c ~/.config/shadobar/config-xmonad shadobar") -- Restart polybar
     , ((modm,                   xK_F9    ), spawn "killall picom") -- Kill picom 
+    , ((modm .|. shiftMask,     xK_F9    ), spawn "picom --experimental-backends &") -- Kill picom 
     , ((mods .|. controlMask,   xK_d     ), spawn "killall Discord") -- Kill Discord
     , ((mods,                   xK_p     ), spawn "betterlockscreen -l blur -r 1920x1080 -b 0.2 -t 'Welcome back, Shado...'") -- Lock Screen
         -- Session --------------------------------------------------------------------------------
@@ -807,8 +810,8 @@ myKeys conf@(XConfig {XMonad.modMask = modm}) = M.fromList $
     -- , ((modm,                   xK_f     ), sendMessage $ LC.JumpToLayout "Hidden idk"  ) -- >> sendMessage ToggleStruts >> spawn "polybar-msg cmd toggle") -- Toggles Fullscreen
     , ((modm,                   xK_grave ), layoutPrompt shXPConfig                     ) -- Layout Prompt
         -- Workspaces -----------------------------------------------------------------------------
-    , ((modm .|. shiftMask,     xK_Right ), nextWS                                      ) -- Cycle Right
-    , ((modm .|. shiftMask,     xK_Left  ), prevWS                                      ) -- Cycle Left
+    , ((modm .|. controlMask,   xK_Right ), nextWS                                      ) -- Cycle Right
+    , ((modm .|. controlMask,   xK_Left  ), prevWS                                      ) -- Cycle Left
         -- Tabs -----------------------------------------------------------------------------------
     , ((modm,                   xK_semicolon ), CK.bindOn CK.LD [("M Tab", windows W.focusUp),("", onGroup W.focusUp')]    ) -- Focus next tab up
     , ((modm,                   xK_apostrophe), CK.bindOn CK.LD [("M Tab", windows W.focusDown),("", onGroup W.focusDown')]) -- Focus next tab down
