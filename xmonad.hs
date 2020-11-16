@@ -442,8 +442,8 @@ screen1LogHook :: D.Client -> PP
 screen1LogHook dbus = def
     { ppOutput = dbusOutput dbus -- \s -> appendFile "/home/shadow/test_pbar" s >> dbusOutput dbus s
     , ppCurrent          = wrap ("%{B#2f2f4a80}%{F" ++ cPink ++ "}%{o"++ cPurpBlue ++"}%{A4:xdotool key alt+shift+Right:}%{A5:xdotool key alt+shift+Left:}  ") "  %{A}%{A}%{-o}%{B- F-}" -- Focused wkspc
-    , ppVisible          = wrap ("%{F" ++ cBlue ++ "} ") " %{F-}" -- not working
-    , ppVisibleNoWindows = Just (wrap ("%{F" ++ cMagenta ++ "} ") " %{F-}") -- not working
+    --, ppVisible          = wrap ("%{F" ++ cBlue ++ "} ") " %{F-}" -- not working
+    -- , ppVisibleNoWindows = Just (wrap ("%{F" ++ cMagenta ++ "} ") " %{F-}") -- not working
     , ppUrgent           = wrap ("%{F" ++ cRed ++ "}%{A4:xdotool key alt+shift+Right:}%{A5:xdotool key alt+shift+Left:} ") " %{A}%{A}%{F-}" -- Urgent wkspc
     , ppHidden           = wrap ("%{F" ++ cPurpBlue ++ "}%{A4:xdotool key alt+shift+Right:}%{A5:xdotool key alt+shift+Left:}  ") " %{A}%{A}%{F-}" -- Hidden with windows
     , ppHiddenNoWindows  = wrap ("%{F" ++ cEmpty ++ "}%{A4:xdotool key alt+shift+Right:}%{A5:xdotool key alt+shift+Left:} ") " %{A}%{A}%{F-}" -- Hidden and empty
