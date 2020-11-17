@@ -14,8 +14,9 @@ import XMonad
 -- import XMonad.Config.Prime
 import Data.Monoid
 import System.Exit
-import System.IO (hClose)
+import System.IO
 -- import Graphics.X11.ExtraTypes.XF86
+import Control.Monad (forM_, join)
 import qualified XMonad.StackSet as W
 
     -- Actions
@@ -39,6 +40,7 @@ import Data.List
 import Data.Maybe
 import Data.Ratio ((%))
 import Data.Tree
+import Data.Function (on)
 import qualified Data.Map        as M
 import qualified Data.Tuple.Extra as TE
 
@@ -110,8 +112,10 @@ import Control.Arrow (first)
     -- Utilities
 import XMonad.Util.Cursor
 import XMonad.Util.CustomKeys
+import XMonad.Util.Loggers
 import XMonad.Util.NamedActions
 import XMonad.Util.NamedScratchpad
+import XMonad.Util.NamedWindows (getName)
 import XMonad.Util.Scratchpad
 import XMonad.Util.Run
 import XMonad.Util.SpawnOnce
@@ -194,10 +198,9 @@ myConfig = def {
     manageHook         = manageDocks
                         <+> myManageHook
                         <+> manageSpawn
-                        <+> insertPosition End Newer -- SET NEW WINDOW POSITION AND FOCUS
+                        <+> insertPosition End Newer -- SETS NEW WINDOW POSITION AND FOCUS
                         <+> namedScratchpadManageHook myScratchPads,
                         -- <+> manageHook def,
-    -- logHook            = myLogHook,
     handleEventHook    = docksEventHook
                         <+> minimizeEventHook,
                         -- <+> fullscreenEventHook,
@@ -404,7 +407,7 @@ myStartupHook = do
     spawn "killall picom; picom --experimental-backends &"
     spawn "/usr/bin/emacs --daemon &"
     -- spawn "killall xcape; xcape -t 200 -e 'Hyper_L=Tab;Hyper_R=backslash'" 
-    spawn "killall polybar; polybar -c ~/.config/shadobar/config-xmonad shadobar"
+    spawn "killall polybar; polybar -c ~/.config/shadobar/config-xmonad shadobar" -- 2>~/.config/shadobar/log"
     spawn "killall udiskie; udiskie -s -a -n &"
     spawn "xset r rate 200 30"
     spawn "killall dunst"
@@ -421,9 +424,6 @@ myStartupHook = do
 main :: IO ()
 main = do
     nScreens <- countScreens -- Gets current screen count
-    dbus <- D.connectSession
-    D.requestName dbus (D.busName_ "org.xmonad.Log")
-        [D.nameAllowReplacement, D.nameReplaceExisting, D.nameDoNotQueue]
 
     xmonad 
         $ dynamicProjects projects
@@ -431,60 +431,69 @@ main = do
         $ withNavigation2DConfig myNav2DConf
         $ withUrgencyHook NoUrgencyHook 
         $ ewmh 
-        $ myConfig { workspaces = withScreens nScreens [m0ws1,m0ws2,m0ws3,m0ws4,m0ws5,m0ws6,m0ws7,m0ws8,m0ws9], logHook = dynamicLogWithPP (myLogHook dbus) }
+        $ myConfig { workspaces = withScreens nScreens [m0ws1,m0ws2,m0ws3,m0ws4,m0ws5,m0ws6,m0ws7,m0ws8,m0ws9], logHook = myLogHook }
 
     -- xmproc <- spawnPipe "xmobar -x 0 ~/.config/xmobar/xmobarrc"
 ----------------------------------------------------------------------------}}}
 -- Loghook: {{{
 -------------------------------------------------------------------------------
     -- Bar Customization
-screen1LogHook :: D.Client -> PP
-screen1LogHook dbus = def
-    { ppOutput = dbusOutput dbus -- \s -> appendFile "/home/shadow/test_pbar" s >> dbusOutput dbus s
-    , ppCurrent          = wrap ("%{B#2f2f4a80}%{F" ++ cPink ++ "}%{o"++ cPurpBlue ++"}%{A4:xdotool key alt+shift+Right:}%{A5:xdotool key alt+shift+Left:}  ") "  %{A}%{A}%{-o}%{B- F-}" -- Focused wkspc
-    --, ppVisible          = wrap ("%{F" ++ cBlue ++ "} ") " %{F-}" -- not working
-    -- , ppVisibleNoWindows = Just (wrap ("%{F" ++ cMagenta ++ "} ") " %{F-}") -- not working
-    , ppUrgent           = wrap ("%{F" ++ cRed ++ "}%{A4:xdotool key alt+shift+Right:}%{A5:xdotool key alt+shift+Left:} ") " %{A}%{A}%{F-}" -- Urgent wkspc
-    , ppHidden           = wrap ("%{F" ++ cPurpBlue ++ "}%{A4:xdotool key alt+shift+Right:}%{A5:xdotool key alt+shift+Left:}  ") " %{A}%{A}%{F-}" -- Hidden with windows
-    , ppHiddenNoWindows  = wrap ("%{F" ++ cEmpty ++ "}%{A4:xdotool key alt+shift+Right:}%{A5:xdotool key alt+shift+Left:} ") " %{A}%{A}%{F-}" -- Hidden and empty
-    , ppWsSep            = ""
-    , ppSep              = " | "
-    -- , ppTitle = myAddSpaces 25
-    , ppLayout = \x -> case x of     -- Changes layout name to be displayed
-                        "Hidden Tall" -> "%{F#6a5acd}%{A4:xdotool key alt+space:}%{A5:xdotool key alt+space:}T %{A}%{A}%{F-}|"
-                        "Hidden Mirror Tall" -> "%{A4:xdotool key alt+space:}%{A5:xdotool key alt+space:}M %{A}%{A}|"
-                        "Hidden Monocle" -> "%{A4:xdotool key alt+space:}%{A5:xdotool key alt+space:}M %{A}%{A}|"
-                        "Hidden M Tab" -> "%{A4:xdotool key alt+space:}%{A5:xdotool key alt+space:}MT %{A}%{A}|"
-                        "Hidden Shadolayout" -> "%{A4:xdotool key alt+space:}%{A5:xdotool key alt+space:}Shado %{A}%{A}|"
-                        _ -> "? |"
-    , ppOrder = \(ws:l:_) -> [ws,l] -- [workspace, layout] (Removed window title)
-    }
-
--- Emit a DBus signal on log updates
-dbusOutput :: D.Client -> String -> IO ()
-dbusOutput dbus str = do
-    let signal = (D.signal objectPath interfaceName memberName) {
-            D.signalBody = [D.toVariant $ UTF8.decodeString str]
-        }
-    D.emit dbus signal
-  where
-    objectPath = D.objectPath_ "/org/xmonad/Log"
-    interfaceName = D.interfaceName_ "org.xmonad.Log"
-    memberName = D.memberName_ "Update"
-
-myLogHook :: D.Client -> PP
-myLogHook dbus = (marshallPP 0 (screen1LogHook dbus)) 
-    { ppSort = selectScreen 0 (ppSort def) }
-
 selectScreen :: ScreenId -> X WorkspaceSort -> X WorkspaceSort
 selectScreen s = fmap (fmap (filter onScreen)) where
     onScreen ws = unmarshallS (W.tag ws) == s
 
--- myAddSpaces :: Int -> String -> String
--- myAddSpaces len str = sstr ++ replicate (len - length sstr) ' '
---   where
---     sstr = shorten len str
+-- mkLayoutStr :: String -> String -> String -> String
+-- mkLayoutStr colour logo rep =
+--   concat ["%{T2}%{F", colour, "} ", logo, "%{T-}%{F", "#f55966", "} ", rep]
 
+
+-- layoutParse :: String -> String
+-- layoutParse s | s == "Float"              = mkLayoutStr "#b789cd" "+++ " "FLT "
+--               | s == "Hidden Tall"        = mkLayoutStr "#6a5acd" "||+ " "| T |"
+--               | s == "Hidden Mirror Tall" = mkLayoutStr "#6a5acd" "||| " "| M(T) |"
+--               | s == "Hidden Monocle"     = mkLayoutStr "#87b0d6" "||| " "| M |"
+--               | s == "Hidden M Tab"       = mkLayoutStr "#8be9fd" "___ " "| MT |"
+--               | s == "Fullscreen"         = mkLayoutStr "#bd93f9" "| | " "| F |"
+--               | s == "Hidden Shadolayout" = mkLayoutStr "#b789cd" "| | " "| Shado |"
+--               | otherwise               = s -- fallback for changes in C.Layout
+mkLayoutStr :: String -> String -> String
+mkLayoutStr colour rep =
+  concat ["|%{T2}%{F", colour, "} ", rep, " %{T-}%{F-}|"]
+
+
+layoutParse :: String -> String
+layoutParse s | s == "Float"              = mkLayoutStr "#b789cd" "FLT"
+              | s == "Hidden Tall"        = mkLayoutStr "#bd93f9" "T"
+              | s == "Hidden Mirror Tall" = mkLayoutStr "#bd93f9" "M(T)"
+              | s == "Hidden Monocle"     = mkLayoutStr "#87b0d6" "M"
+              | s == "Hidden M Tab"       = mkLayoutStr "#8be9fd" "MT"
+              | s == "Fullscreen"         = mkLayoutStr "#b789cd" "F"
+              | s == "Hidden Shadolayout" = mkLayoutStr "#6a5acd" "Shado"
+              | otherwise               = s -- fallback for changes in C.Layout
+
+-- LogHook --------------------------------------------------------------------
+logger :: X ()
+logger = withWindowSet $ \ws -> do
+  let layoutName = layoutParse . description . W.layout . W.workspace $ W.current ws
+  io $ System.IO.appendFile ("/home/shadow/.xmonad/xmonad-layout") (layoutName ++ "\n")
+
+myLogHook = do
+    logger
+    ewmhDesktopsLogHookCustom (map unmarshallWindowSpace . namedScratchpadFilterOutWorkspace)
+    -- winset <- gets windowset
+    -- title <- maybe (return "") (fmap show . getName) . W.peek $ winset
+    -- h <- spawnPipe "> ~/.xmonad/.xmonad-layout-log"
+    -- dynamicLogWithPP def {
+    --     ppOutput = hPutStrLn h,
+    --     ppLayout = \x -> case x of     -- Changes layout name to be displayed
+    --                      "Hidden Tall" -> "%{F#6a5acd}%{A4:xdotool key alt+space:}%{A5:xdotool key alt+space:}T %{A}%{A}%{F-}|"
+    --                      "Hidden Mirror Tall" -> "%{A4:xdotool key alt+space:}%{A5:xdotool key alt+space:}M %{A}%{A}|"
+    --                      "Hidden Monocle" -> "%{A4:xdotool key alt+space:}%{A5:xdotool key alt+space:}M %{A}%{A}|"
+    --                      "Hidden M Tab" -> "%{A4:xdotool key alt+space:}%{A5:xdotool key alt+space:}MT %{A}%{A}|"
+    --                      "Hidden Shadolayout" -> "%{A4:xdotool key alt+space:}%{A5:xdotool key alt+space:}Shado %{A}%{A}|"
+    --                      _ -> "? |",
+    --     ppOrder = \(l:_) -> [l] -- [workspace, layout] (Removed window title)
+    --                      }
 ----------------------------------------------------------------------------}}}
 -- My Everything: {{{
 --------------------------------------------------------------------------------
@@ -804,8 +813,10 @@ myKeys conf@(XConfig {XMonad.modMask = modm}) = M.fromList $
         -- Layouts --------------------------------------------------------------------------------
     , ((modm,                   xK_t     ), withFocused $ windows . W.sink              ) -- Push win into tiling
     , ((modm .|. shiftMask,     xK_t     ), sendMessage $ Toggle MIRROR                 ) -- Toggles Mirror Layout mode
+    -- , ((modm,                   xK_space ), sendMessage NextLayout >> (dynamicLogString def >>= \d->spawn $"echo "++d++" > ~/.xmonad/.xmonad-layout-log"))
     , ((modm,                   xK_space ), sendMessage NextLayout                      ) -- Rotate available layouts
-    , ((modm .|. shiftMask,     xK_space ), toSubl NextLayout                           ) -- Rotate available layouts
+    -- , ((modm .|. shiftMask,     xK_space ), toSubl NextLayout >> (dynamicLogString def >>= \d->spawn $"echo "++d++" > ~/.xmonad/.xmonad-layout-log")) -- Rotate available layouts
+    , ((modm .|. shiftMask,     xK_space ), toSubl NextLayout)
     , ((modm .|. controlMask,   xK_space ), setLayout $ XMonad.layoutHook conf          ) -- Reset layouts on current workspace
     -- , ((modm,                   xK_f     ), sendMessage $ LC.JumpToLayout "Hidden idk"  ) -- >> sendMessage ToggleStruts >> spawn "polybar-msg cmd toggle") -- Toggles Fullscreen
     , ((modm,                   xK_grave ), layoutPrompt shXPConfig                     ) -- Layout Prompt
