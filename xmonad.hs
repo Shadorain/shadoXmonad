@@ -3,55 +3,44 @@
 -- Shadomonad Config --
 -------------------------------------------------------------------------------
 -- TODO: 
-  -- [ ] change layouts
-  -- [ ] have alot more layouts and sublayout abilities
-  -- [ ] have some default apps open for certain workspaces!!!
+  -- [o] have alot more layouts and sublayout abilities
+  -- [ ] Setup projects
 -------------------------------------------------------------------------------
 -- Imports: {{{
 -------------------------------------------------------------------------------
     -- Base
 import XMonad
--- import XMonad.Config.Prime
 import Data.Monoid
 import System.Exit
 import System.IO
--- import Graphics.X11.ExtraTypes.XF86
 import Control.Monad (forM_, join)
 import qualified XMonad.StackSet as W
 
     -- Actions
 import XMonad.Actions.CycleWS  --(moveTo, shiftTo, WSType(..), nextScreen, prevScreen)
 import qualified XMonad.Actions.ConditionalKeys  as CK
-import XMonad.Actions.Commands
+-- import XMonad.Actions.Commands
 import XMonad.Actions.CopyWindow
 import XMonad.Actions.DynamicProjects
--- import XMonad.Actions.DynamicWorkspaces
 import XMonad.Actions.GridSelect
 import XMonad.Actions.Navigation2D
 import XMonad.Actions.SpawnOn
--- import XMonad.Actions.PerWorkspaceKeys
 import qualified XMonad.Actions.Submap           as SM
-import qualified XMonad.Actions.TreeSelect       as TS
--- import XMonad.Actions.WorkspaceNames
+-- import qualified XMonad.Actions.TreeSelect       as TS
 import qualified XMonad.Actions.Search as S
 
     -- Data
 import Data.List
 import Data.Maybe
-import Data.Ratio ((%))
-import Data.Tree
-import Data.Function (on)
+-- import Data.Ratio ((%))
+-- import Data.Tree
+-- import Data.Function (on)
 import qualified Data.Map        as M
-import qualified Data.Tuple.Extra as TE
-
-    -- Dbus
-import qualified DBus as D
-import qualified DBus.Client as D
-import qualified Codec.Binary.UTF8.String as UTF8
+-- import qualified Data.Tuple.Extra as TE
+-- import qualified Codec.Binary.UTF8.String as UTF8
 
     -- Hooks
 import XMonad.Hooks.DynamicLog
--- import XMonad.Hooks.DynamicProperty
 import XMonad.Hooks.EwmhDesktops
 import XMonad.Hooks.ManageDocks
 import XMonad.Hooks.ManageHelpers
@@ -59,26 +48,24 @@ import XMonad.Hooks.Minimize
 import XMonad.Hooks.Place
 import XMonad.Hooks.SetWMName
 import XMonad.Hooks.UrgencyHook
-import XMonad.Hooks.WorkspaceHistory    -- (For tree select)
 import XMonad.Hooks.InsertPosition
 
     -- Layouts
 import XMonad hiding ( (|||) )
--- import XMonad.Layout hiding ( (|||) )
-import qualified XMonad.Layout.LayoutCombinators as LC
+-- import qualified XMonad.Layout.LayoutCombinators as LC
 import XMonad.Layout.Accordion
 import XMonad.Layout.BinarySpacePartition
-import XMonad.Layout.BoringWindows
+-- import XMonad.Layout.BoringWindows
 import XMonad.Layout.Fullscreen
 import XMonad.Layout.NoFrillsDecoration
 import XMonad.Layout.ResizableTile
-import XMonad.Layout.Spiral
+-- import XMonad.Layout.Spiral
 import XMonad.Layout.SubLayouts
 import XMonad.Layout.Tabbed
 import XMonad.Layout.ThreeColumns
 
     -- Layout Mods
-import XMonad.Layout.Decoration
+-- import XMonad.Layout.Decoration
 import XMonad.Layout.Gaps
 import XMonad.Layout.Hidden
 import XMonad.Layout.IndependentScreens
@@ -86,13 +73,13 @@ import XMonad.Layout.IndependentScreens
 import XMonad.Layout.LayoutModifier
 import XMonad.Layout.Master
 import XMonad.Layout.MultiToggle --(mkToggle, single, EOT(EOT), (??))
-import XMonad.Layout.MultiToggle.Instances --(StdTransformers(NBFULL, MIRROR, NOBORDERS))
-import XMonad.Layout.NoBorders
+import XMonad.Layout.MultiToggle.Instances (StdTransformers(FULL,NBFULL, MIRROR, NOBORDERS))
+-- import XMonad.Layout.NoBorders
 import XMonad.Layout.PerScreen
-import XMonad.Layout.PerWorkspace
+-- import XMonad.Layout.PerWorkspace
 import XMonad.Layout.Renamed
 import XMonad.Layout.Reflect
-import XMonad.Layout.SimpleDecoration
+-- import XMonad.Layout.SimpleDecoration
 import XMonad.Layout.Simplest
 import XMonad.Layout.Spacing
 import XMonad.Layout.WindowNavigation
@@ -104,22 +91,22 @@ import qualified XMonad.Layout.MultiToggle as MT (Toggle(..))
 import XMonad.Prompt
 import XMonad.Prompt.Input
 import XMonad.Prompt.FuzzyMatch
-import XMonad.Prompt.Layout
+-- import XMonad.Prompt.Layout
 import XMonad.Prompt.Man
-import XMonad.Prompt.Shell (shellPrompt)
+-- import XMonad.Prompt.Shell (shellPrompt)
 import Control.Arrow (first)
 
     -- Utilities
 import XMonad.Util.Cursor
-import XMonad.Util.CustomKeys
+-- import XMonad.Util.CustomKeys
 import XMonad.Util.Loggers
-import XMonad.Util.NamedActions
+-- import XMonad.Util.NamedActions
 import XMonad.Util.NamedScratchpad
-import XMonad.Util.NamedWindows (getName)
-import XMonad.Util.Scratchpad
-import XMonad.Util.Run
-import XMonad.Util.SpawnOnce
-import XMonad.Util.WorkspaceCompare
+-- import XMonad.Util.NamedWindows (getName)
+-- import XMonad.Util.Scratchpad
+-- import XMonad.Util.Run
+-- import XMonad.Util.SpawnOnce
+-- import XMonad.Util.WorkspaceCompare
 ----------------------------------------------------------------------------}}}
 -- Variables: {{{
 -------------------------------------------------------------------------------
@@ -175,7 +162,6 @@ m0ws8 = "八" -- m1ws8 = "clg" -- " " -- C lang
 m0ws9 = "九" -- m1ws9 = "rev" -- " " -- Reversing
 
     -- My Scripts
--- %{A2:setsid -f \"$TERMINAL\" calcurse -D ~/.config/calcurse:}%{A3:setsid -f \"$TERMINAL\" ~/vimwiki/diary/$YEAR-$MONTH-$DAY.md:}%time%%{A}%{A}%{A}"
 dateScript = "~/.config/scripts/datenotif"
 bigO = "sxiv -o -r -b -g 1000x700+450+200 ~/Pictures/bigocheatsheet.png &"
 ----------------------------------------------------------------------------}}}
@@ -270,7 +256,7 @@ myNav2DConf = def
     { defaultTiledNavigation    = centerNavigation
     , floatNavigation           = centerNavigation
     , screenNavigation          = lineNavigation
-    , layoutNavigation          = [("Full",          centerNavigation)]
+    , layoutNavigation          = [("Full", centerNavigation)]
     , unmappedWindowRect        = [("Full", singleWindowRect)]
     }
 
@@ -347,19 +333,16 @@ myManageHook = (composeAll . concat $
     [[ className =? "lutris"                  --> doFloat ]
     ,[ className =? "wall-d"                  --> doFloat ]
     ,[ className =? "Sxiv"                    --> doFloat ]
-    ,[ resource  =? "desktop_window"          --> doIgnore ]
-    ,[ resource  =? "kdesktop"                --> doIgnore ] ])
-    -- <+> (composeOne . concat $
-    -- [ [className     =? "ncmpcpp"        -?> doCenterFloat' ] ])
-        where
-            role = stringProperty "WM_WINDOW_ROLE"
-            doMaster = doF W.shiftMaster
-            doFloatAt' x y = doFloatAt x y <+> doMaster
-            doRectFloat' r = doRectFloat r <+> doMaster
-            doCenterFloat' = doCenterFloat <+> doMaster
-            keepMaster c = assertSlave <+> assertMaster where
-                assertSlave = fmap (/= c) className --> doF W.swapDown
-                assertMaster = className =? c --> doF W.swapMaster
+    ,[ resource  =? "desktop_window"          --> doIgnore ] ])
+        -- where
+        --     role = stringProperty "WM_WINDOW_ROLE"
+        --     doMaster = doF W.shiftMaster
+        --     doFloatAt' x y = doFloatAt x y <+> doMaster
+        --     doRectFloat' r = doRectFloat r <+> doMaster
+        --     doCenterFloat' = doCenterFloat <+> doMaster
+        --     keepMaster c = assertSlave <+> assertMaster where
+        --         assertSlave = fmap (/= c) className --> doF W.swapDown
+        --         assertMaster = className =? c --> doF W.swapMaster
     -- ,[ title     =? "ncmpcpp-ueberzug"        -?> doFloatAt' (46/1680) (1-176/1050) ]
     -- ,[ title     =? "ncmpcpp-ueberzug"        -?> doRectFloat' (W.RationalRect 0.65 0.65 0.3 0.3) ]
 
@@ -402,22 +385,18 @@ myStartupHook = do
     -- spawn "feh --bg-scale --no-fehbg $HOME/Pictures/Backgrounds/winter-sun2.jpg &"
     spawn "feh --bg-scale --no-fehbg $HOME/Pictures/Backgrounds/forest.png &"
     -- spawn "feh --bg-scale --no-fehbg $HOME/Pictures/Backgrounds/ghosts3-2.jpg &"
-    spawn "/home/shadow/.gem/ruby/2.7.0/bin/fusuma &"
+    -- spawn "/home/shadow/.gem/ruby/2.7.0/bin/fusuma &"
     spawn "flashfocus &"
     spawn "killall picom; picom --experimental-backends &"
     spawn "/usr/bin/emacs --daemon &"
     -- spawn "killall xcape; xcape -t 200 -e 'Hyper_L=Tab;Hyper_R=backslash'" 
     spawn "killall polybar; polybar -c ~/.config/shadobar/config-xmonad shadobar" -- 2>~/.config/shadobar/log"
-    spawn "killall udiskie; udiskie -s -a -n &"
+    -- spawn "killall udiskie; udiskie -s -a -n &"
     spawn "xset r rate 200 30"
-    spawn "killall dunst"
     -- spawn "sleep 1; killall stalonetray; stalonetray &"
     -- spawn "sleep 1; killall nm-applet; nm-applet &"
-    spawn "killall blueprox; blueprox & ; blueprox &"
-    
+    -- spawn "killall blueprox; blueprox & ; blueprox &"
     setDefaultCursor xC_left_ptr
-
-    -- spawn "killall polybar; polybar -c ~/.config/shadobar/config-xmonad shadobar2"
 ----------------------------------------------------------------------------}}}
 -- Main: {{{
 -------------------------------------------------------------------------------
@@ -426,36 +405,18 @@ main = do
     nScreens <- countScreens -- Gets current screen count
 
     xmonad 
-        $ dynamicProjects projects
         $ fullscreenSupport
         $ withNavigation2DConfig myNav2DConf
         $ withUrgencyHook NoUrgencyHook 
+        $ dynamicProjects projects
         $ ewmh 
         $ myConfig { workspaces = withScreens nScreens [m0ws1,m0ws2,m0ws3,m0ws4,m0ws5,m0ws6,m0ws7,m0ws8,m0ws9], logHook = myLogHook }
-
-    -- xmproc <- spawnPipe "xmobar -x 0 ~/.config/xmobar/xmobarrc"
 ----------------------------------------------------------------------------}}}
 -- Loghook: {{{
 -------------------------------------------------------------------------------
-    -- Bar Customization
-selectScreen :: ScreenId -> X WorkspaceSort -> X WorkspaceSort
-selectScreen s = fmap (fmap (filter onScreen)) where
-    onScreen ws = unmarshallS (W.tag ws) == s
+workspacesOn :: ScreenId -> [WindowSpace] -> [WindowSpace]
+workspacesOn s = filter onScreen where onScreen ws = unmarshallS (W.tag ws) == s
 
--- mkLayoutStr :: String -> String -> String -> String
--- mkLayoutStr colour logo rep =
---   concat ["%{T2}%{F", colour, "} ", logo, "%{T-}%{F", "#f55966", "} ", rep]
-
-
--- layoutParse :: String -> String
--- layoutParse s | s == "Float"              = mkLayoutStr "#b789cd" "+++ " "FLT "
---               | s == "Hidden Tall"        = mkLayoutStr "#6a5acd" "||+ " "| T |"
---               | s == "Hidden Mirror Tall" = mkLayoutStr "#6a5acd" "||| " "| M(T) |"
---               | s == "Hidden Monocle"     = mkLayoutStr "#87b0d6" "||| " "| M |"
---               | s == "Hidden M Tab"       = mkLayoutStr "#8be9fd" "___ " "| MT |"
---               | s == "Fullscreen"         = mkLayoutStr "#bd93f9" "| | " "| F |"
---               | s == "Hidden Shadolayout" = mkLayoutStr "#b789cd" "| | " "| Shado |"
---               | otherwise               = s -- fallback for changes in C.Layout
 mkLayoutStr :: String -> String -> String
 mkLayoutStr colour rep =
   concat ["|%{T2}%{F", colour, "} ", rep, " %{T-}%{F-}|"]
@@ -471,151 +432,15 @@ layoutParse s | s == "Float"              = mkLayoutStr "#b789cd" "FLT"
               | s == "Hidden Shadolayout" = mkLayoutStr "#6a5acd" "Shado"
               | otherwise               = s -- fallback for changes in C.Layout
 
--- LogHook --------------------------------------------------------------------
 logger :: X ()
 logger = withWindowSet $ \ws -> do
   let layoutName = layoutParse . description . W.layout . W.workspace $ W.current ws
   io $ System.IO.appendFile ("/home/shadow/.xmonad/xmonad-layout") (layoutName ++ "\n")
 
 myLogHook = do
+    ewmhDesktopsLogHookCustom (map unmarshallWindowSpace . namedScratchpadFilterOutWorkspace . workspacesOn 0)
     logger
-    ewmhDesktopsLogHookCustom (map unmarshallWindowSpace . namedScratchpadFilterOutWorkspace)
-    -- winset <- gets windowset
-    -- title <- maybe (return "") (fmap show . getName) . W.peek $ winset
-    -- h <- spawnPipe "> ~/.xmonad/.xmonad-layout-log"
-    -- dynamicLogWithPP def {
-    --     ppOutput = hPutStrLn h,
-    --     ppLayout = \x -> case x of     -- Changes layout name to be displayed
-    --                      "Hidden Tall" -> "%{F#6a5acd}%{A4:xdotool key alt+space:}%{A5:xdotool key alt+space:}T %{A}%{A}%{F-}|"
-    --                      "Hidden Mirror Tall" -> "%{A4:xdotool key alt+space:}%{A5:xdotool key alt+space:}M %{A}%{A}|"
-    --                      "Hidden Monocle" -> "%{A4:xdotool key alt+space:}%{A5:xdotool key alt+space:}M %{A}%{A}|"
-    --                      "Hidden M Tab" -> "%{A4:xdotool key alt+space:}%{A5:xdotool key alt+space:}MT %{A}%{A}|"
-    --                      "Hidden Shadolayout" -> "%{A4:xdotool key alt+space:}%{A5:xdotool key alt+space:}Shado %{A}%{A}|"
-    --                      _ -> "? |",
-    --     ppOrder = \(l:_) -> [l] -- [workspace, layout] (Removed window title)
-    --                      }
 ----------------------------------------------------------------------------}}}
--- My Everything: {{{
---------------------------------------------------------------------------------
-myApplications :: [(String, String, String)]
-myApplications = [ ("Shadoplan", (myTerminal ++ "sp"), "My TODO program")
-                 , ("Neovim", (myTerminal ++ "nvim"), "My TODO program")
-                 , ("My Wiki", (myTerminal ++ "nvim ~/vimwiki/index.md"), "My personal wiki")
-                 , ("Audacity", "audacity", "Music/Audio editor and recorder")
-                 , ("Krita", "krita", "Advanced art/drawing program")
-                 , ("Dolphin", "dolphin", "GUI File manager")
-                 , ("Discord", "Discord", "Communications Software")
-                 , ("Irssi", (myTerminal ++ "irssi"), "IRC Client")
-                 , ("Calcurse", (myTerminal ++ "calcurse"), "TUI Calendar useful for many things")
-                 , ("Qutebrowser", "qutebrowser", "Lightweight qt5 browser")
-                 , ("Lynx Browser", (myTerminal ++ "lynx"), "TUI Browser")
-                 , ("Firefox", "firefox", "Main browser")
-                 , ("Minecraft", "minecraft-launcher", "I mean just Minecraft")
-                 , ("Lutris", "lutris", "Game launcher")
-                 , ("Evince", "evince", "Simple PDF Viewer")
-                 ]
-
-myBookmarks :: [(String, String, String)]
-myBookmarks  = [ ("XMonad Doc Extending", myBrowser ++ "http://hackage.haskell.org/package/xmonad-contrib-0.16/docs/XMonad-Doc-Extending.html", "Massive doc page for XMonad")
-                 -- Programming
-               , ("Learn you a haskell", myBrowser ++ "http://learnyouahaskell.com/chapters", "Amazing book for haskell lang")
-               , ("Assembly Programming Tutorial", myBrowser ++ "https://www.tutorialspoint.com/assembly_programming/", "Very good guide to assembly")
-               , ("Guide to x86 Assembly", myBrowser ++ "http://www.cs.virginia.edu/~evans/cs216/guides/x86.html", "Nice asm guide")
-               , ("CPP Reference", myBrowser ++ "https://en.cppreference.com/w/", "For all things C/C++")
-               , ("Programming E-Books", myBrowser ++ "https://github.com/trumpowen/All-Programming-E-Books-PDF#c-books", "Big 'awesome' github, with a dump of prog books for many langs")
-                 -- Font
-               , ("Text to ASCII Art Generator", myBrowser ++ "http://patorjk.com/software/taag/#p=testall&f=Graffiti&t=Shado.vim", "Great site for ascii text/art")
-               , ("FontDrop!", myBrowser ++ "https://fontdrop.info/", "Site to view fonts")
-               , ("Nerd Fonts Cheatsheet", myBrowser ++ "https://www.nerdfonts.com/cheat-sheet", "Site for nerd font icons")
-                 -- Security/Hacking
-               , ("Hack The Box", myBrowser ++ "https://hackthebox.eu", "Amazing resource for getting out there with sec/hacking")
-               , ("TryHackMe", myBrowser ++ "https://tryhackme.com", "Another good CTF/Learning type resource")
-               , ("Reverse Engineering 101", myBrowser ++ "https://malwareunicorn.org/workshops/re101.html#0", "Great reversing walkthrough (covers alot of malware analysis)")
-               , ("Mem Labs", myBrowser ++ "https://github.com/stuxnet999/MemLabs", "Very good memory forensics resource")
-               , ("0x00 Sec", myBrowser ++ "https://0x00sec.org/", "The 'Reddit' for all things Security")
-               , ("Thug Crowd", myBrowser ++ "https://thugcrowd.com/archive.html", "Some fun hacking exercises")
-               , ("Hacking Books", myBrowser ++ "https://haxf4rall.com/hacking-books/", "Site for free security books")
-               ]
-
-myFiles :: [(String, String, String)]
-myFiles  = [ ("XMonad Config", myEditor ++ "~/.xmonad/xmonad.hs", "My xmonad configuration file")
-           , ("Doom Config", myEditor ++ "~/.doom.d/config.el", "My doom emacs config.el file")
-           , ("Doom Init", myEditor ++ "~/.doom.d/init.el", "My doom emacs init.el file")
-           , ("Dwm Config", myEditor ++ "~/dwm/config.h", "My dwm configuration file")
-           , ("Zshrc", myEditor ++ "~/.zshrc", "My zsh config file")
-            ]
-
--- Allows me to use the same functions for treeselect in gridselect
-myAppGrid :: [(String, String)]
-myAppGrid = [ (a,b) | (a,b,c) <- xs]
-  where xs = myApplications
-        
-myBookmarksGrid :: [(String, String)]
-myBookmarksGrid  = [ (a,b) | (a,b,c) <- xs]
-  where xs = myBookmarks
-
-myFilesGrid :: [(String, String)]
-myFilesGrid  = [ (a,b) | (a,b,c) <- xs]
-  where xs = myFiles
-
------------------------------------------------------------------------------}}}
--- Tree Select: {{{
---------------------------------------------------------------------------------
-tsAction :: TS.TSConfig (X ()) -> X ()
-tsAction a = TS.treeselectAction a
-    [ Node (TS.TSNode "My Apps" "List of many gui/tui applications" (return ()))
-      [Node (TS.TSNode (TE.fst3 $ myApplications !! n)
-                       (TE.thd3 $ myApplications !! n)
-                       (spawn $ TE.snd3 $ myApplications !! n)
-            ) [] | n <- [0..(length myApplications - 1)]
-      ]
-    , Node (TS.TSNode "My Bookmarks" "List of my more important bookmarks" (return ()))
-      [Node (TS.TSNode (TE.fst3 $ myBookmarks !! n)
-                       (TE.thd3 $ myBookmarks !! n)
-                       (spawn $ TE.snd3 $ myBookmarks !! n)
-            ) [] | n <- [0..(length myBookmarks - 1)]
-      ]
-    , Node (TS.TSNode "My Files" "List of my most used files" (return ()))
-      [Node (TS.TSNode (TE.fst3 $ myFiles !! n)
-                       (TE.thd3 $ myFiles !! n)
-                       (spawn $ TE.snd3 $ myFiles !! n)
-            ) [] | n <- [0..(length myFiles - 1)]
-      ]
-    ]
-
-myTreeSelConfig :: TS.TSConfig a
-myTreeSelConfig  = TS.TSConfig { TS.ts_hidechildren = True
-                               , TS.ts_background   = 0x7A1B1B29
-                               , TS.ts_font         = myFont
-                               , TS.ts_node         = (0xffbfaae3, 0xff202331)
-                               , TS.ts_nodealt      = (0xffbfaae3, 0xff292d3e)
-                               , TS.ts_highlight    = (0xffffffff, 0xff755999)
-                               , TS.ts_extra        = 0xffbfaae3
-                               , TS.ts_node_width   = 200
-                               , TS.ts_node_height  = 20
-                               , TS.ts_originX      = 0
-                               , TS.ts_originY      = 0
-                               , TS.ts_indent       = 80
-                               , TS.ts_navigate     = myTreeNav
-                               }
-
-myTreeNav = M.fromList
-    [ ((0, xK_Escape),  TS.cancel          )
-    , ((0, xK_Return),  TS.select          )
-    , ((0, xK_space ),  TS.select          )
-    , ((0, xK_Up    ),  TS.movePrev        )
-    , ((0, xK_Down  ),  TS.moveNext        )
-    , ((0, xK_Left  ),  TS.moveParent      )
-    , ((0, xK_Right ),  TS.moveChild       )
-    , ((0, xK_k     ),  TS.movePrev        )
-    , ((0, xK_j     ),  TS.moveNext        )
-    , ((0, xK_h     ),  TS.moveParent      )
-    , ((0, xK_l     ),  TS.moveChild       )
-    , ((0, xK_o     ),  TS.moveHistBack    )
-    , ((0, xK_i     ),  TS.moveHistForward )
-    ]
-
------------------------------------------------------------------------------}}}
 -- Grid Select: {{{
 --------------------------------------------------------------------------------
 myGridTheme :: Window -> Bool -> X (String, String)
@@ -638,7 +463,6 @@ mygridConfig colorizer = (buildDefaultGSConfig myGridTheme)
 spawnSelected' :: [(String, String)] -> X ()
 spawnSelected' lst = gridselect conf lst >>= flip whenJust spawn
     where conf = defaultGSConfig
-
 -----------------------------------------------------------------------------}}}
 -- Search Engines: {{{
 --------------------------------------------------------------------------------
@@ -647,7 +471,6 @@ archwiki, reddit, cppref :: S.SearchEngine
 archwiki = S.searchEngine "archwiki" "https://wiki.archlinux.org/index.php?search="
 reddit   = S.searchEngine "reddit"   "https://www.reddit.com/search?q="
 cppref   = S.searchEngine "cppref"   "https://en.cppreference.com/mwiki/index.php?search="
-
 ----------------------------------------------------------------------------}}}
 -- Xprompt: {{{
 --------------------------------------------------------------------------------
@@ -680,7 +503,6 @@ shXPConfig = def
 
 shXPConfig' :: XPConfig
 shXPConfig' = shXPConfig { autoComplete = Nothing }
-
 ---------------------------------------------------------------------}}}
 -- Xprompt Keymap: {{{
 ------------------------------------------------------------------------
@@ -722,7 +544,6 @@ shXPKeymap = M.fromList $
      , (xK_Up, moveHistory W.focusDown')
      , (xK_Escape, quit)
      ]
-
 -----------------------------------------------------------------------------}}}
 -- Named Scratchpads: {{{
 -------------------------------------------------------------------------------
@@ -746,33 +567,32 @@ myScratchPads = [ NS "terminal" spawnTerm findTerm manageTerm
                        t = 0.3
                        w = 0.6
                        h = 0.4
-
 ----------------------------------------------------------------------------}}}
 -- Projects: {{{
 -------------------------------------------------------------------------------
 projects :: [Project]
 projects =
-  [ Project { projectName      = m0ws3
-            , projectDirectory = "~/"
-            , projectStartHook = Just $ do spawn "discord"
-                                           spawn (myTerminal ++ "irssi")
+  [ Project { projectName      = "Shado Shell"
+            , projectDirectory = "~/ShadoSH"
+            , projectStartHook = Just $ do spawn (myTerminal ++ "nvim")
             }
-  , Project { projectName      = "term"
-            , projectDirectory = "~/Documents/"
+  , Project { projectName      = "Research"
+            , projectDirectory = "~/"
             , projectStartHook = Just $ do spawn myBrowser
                                            spawn myTerminal
             }
-  , Project { projectName      = "program"
-            , projectDirectory = "~/Documents/Programming/"
-            , projectStartHook = Just $ do spawn (myTerminal ++ "nvim")
-            }
-  , Project { projectName      = "system"
-            , projectDirectory = "~/Documents/"
-            , projectStartHook = Just $ do spawn (myTerminal ++ "ncmpcpp")
-                                           spawn (myTerminal ++ "htop")
-            }
-
   ]
+  -- , Project { projectName      = "program"
+  --           , projectDirectory = "~/Documents/Programming/"
+  --           }
+  -- , Project { projectName      = "system"
+  --           , projectDirectory = "~/Documents/"
+  --           , projectStartHook = Just $ do spawn (myTerminal ++ "ncmpcpp")
+  --                                          spawn (myTerminal ++ "htop")
+  --           , projectStartHook = Just $ do spawn "discord"
+  --                                          spawn (myTerminal ++ "irssi")
+  --           }
+
 ----------------------------------------------------------------------------}}}
 -- Key Bindings: {{{
 -------------------------------------------------------------------------------
@@ -788,43 +608,38 @@ myKeys conf@(XConfig {XMonad.modMask = modm}) = M.fromList $
         -- Xmonad ---------------------------------------------------------------------------------
     [ ((modm .|. controlMask,   xK_q     ), io (exitWith ExitSuccess)                   ) -- Quit
     , ((modm,                   xK_q     ), spawn "xmonad --recompile; xmonad --restart") -- Restart
-    , ((mods.|.controlMask,     xK_F12   ), spawn "~/.config/scripts/switch_gpu"            ) -- Switch GPU
-    , ((modm .|. controlMask,   xK_b     ), spawn "killall polybar; polybar -c ~/.config/shadobar/config-xmonad shadobar") -- Restart polybar
-    , ((modm,                   xK_F9    ), spawn "killall picom") -- Kill picom 
-    , ((modm .|. shiftMask,     xK_F9    ), spawn "picom --experimental-backends &") -- Kill picom 
-    , ((mods .|. controlMask,   xK_d     ), spawn "killall Discord") -- Kill Discord
-    , ((mods,                   xK_p     ), spawn "betterlockscreen -l blur -r 1920x1080 -b 0.2 -t 'Welcome back, Shado...'") -- Lock Screen
+    , ((mods.|.controlMask,     xK_F12   ), spawn "~/.config/scripts/switch_gpu"        ) -- Switch GPU
+    , ((modm,                   xK_F9    ), spawn "killall picom"                       ) -- Kill picom
+    , ((modm .|. shiftMask,     xK_F9    ), spawn "picom --experimental-backends &"     ) -- Start Picom
+    -- , ((modm .|. shiftMask,     xK_x     ), shiftToProjectPrompt                        ) -- Project Prompt
         -- Session --------------------------------------------------------------------------------
-    , ((modm .|. shiftMask,     xK_m     ), spawn "lwsm save"                           ) -- Save Session
-    , ((modm .|. controlMask,   xK_m     ), spawn "lwsm restore"                        ) -- Restore session
+    , ((modm .|. shiftMask,     xK_m     ), spawn "lwsm save"   ) -- Save Session
+    , ((modm .|. controlMask,   xK_m     ), spawn "lwsm restore") -- Restore session
         -- Base -----------------------------------------------------------------------------------
-    , ((modm .|. shiftMask,     xK_Return), spawn $ XMonad.terminal conf                ) -- Terminal
-    , ((modm,                   xK_p     ), spawn myLauncher                            ) -- Dmenu
-    , ((modm .|. controlMask,   xK_p     ), spawn myLauncherCalc                        ) -- Calculator
-    , ((modm,                   xK_b     ), sendMessage ToggleStruts >> spawn "polybar-msg cmd toggle") -- Toggle Bar
-    , ((modm .|. shiftMask,     xK_b     ), sendMessage $ (MT.Toggle NOBORDERS)         ) -- Toggle Borders
-    , ((modm .|. controlMask,   xK_n     ), spawn (myTerminal ++ "nmcli dev wifi connect GENEVASTUDENT")     ) -- Restart net GENEVASTUDENT
-    , ((modm,     xK_KP_Add     ), spawn "feh --bg-scale --no-fehbg $HOME/Pictures/Backgrounds/pretty.jpg &" )
-    , ((modm,     xK_KP_Subtract), spawn "feh --bg-scale --no-fehbg $HOME/Pictures/Backgrounds/forest.png &" )
-    , ((modm,     xK_KP_Decimal ), spawn "feh --bg-scale --no-fehbg $HOME/Pictures/Backgrounds/winter-sun2.jpg &" )
-    , ((modm,     xK_KP_0       ), spawn "feh --bg-scale --no-fehbg $HOME/Pictures/Backgrounds/purps.png &" )
-    , ((mods,                   xK_d     ), spawn dateScript                            ) -- Display date
-    , ((modm,                   xK_o     ), spawn bigO                  ) -- BigOcheatsheet
+    , ((modm .|. shiftMask,     xK_Return), spawn $ XMonad.terminal conf                                                    ) -- Terminal
+    , ((modm,                   xK_p     ), spawn myLauncher                                                                ) -- Dmenu
+    , ((modm .|. controlMask,   xK_p     ), spawn myLauncherCalc                                                            ) -- Calculator
+    , ((modm,                   xK_b     ), sendMessage ToggleStruts >> spawn "polybar-msg cmd toggle"                      ) -- Toggle Bar
+    , ((modm .|. shiftMask,     xK_b     ), sendMessage $ (MT.Toggle NOBORDERS)                                             ) -- Toggle Borders
+    , ((modm .|. controlMask,   xK_n     ), spawn (myTerminal ++ "nmcli dev wifi connect GENEVASTUDENT")                    ) -- Restart net GENEVASTUDENT
+    , ((modm,     xK_KP_Add     ), spawn "feh --bg-scale --no-fehbg $HOME/Pictures/Backgrounds/pretty.jpg &"                ) -- Set Lofi Background
+    , ((modm,     xK_KP_Subtract), spawn "feh --bg-scale --no-fehbg $HOME/Pictures/Backgrounds/forest.png &"                ) -- Set Forest Background
+    , ((mods,                   xK_d     ), spawn dateScript                                                                ) -- Display date
+    , ((modm,                   xK_o     ), spawn bigO                                                                      ) -- BigOcheatsheet
+    , ((modm,                   xK_F7    ), spawn "~/.screenlayout/scs.sh"                                                  ) -- Fix Screens
+    , ((modm .|. controlMask,   xK_b     ), spawn "killall polybar; polybar -c ~/.config/shadobar/config-xmonad shadobar"   ) -- Restart polybar
+    , ((mods,                   xK_p     ), spawn "betterlockscreen -l blur -r 1920x1080 -b 0.2 -t 'Welcome back, Shado...'") -- Lock Screen
         -- Layouts --------------------------------------------------------------------------------
     , ((modm,                   xK_t     ), withFocused $ windows . W.sink              ) -- Push win into tiling
     , ((modm .|. shiftMask,     xK_t     ), sendMessage $ Toggle MIRROR                 ) -- Toggles Mirror Layout mode
-    -- , ((modm,                   xK_space ), sendMessage NextLayout >> (dynamicLogString def >>= \d->spawn $"echo "++d++" > ~/.xmonad/.xmonad-layout-log"))
     , ((modm,                   xK_space ), sendMessage NextLayout                      ) -- Rotate available layouts
-    -- , ((modm .|. shiftMask,     xK_space ), toSubl NextLayout >> (dynamicLogString def >>= \d->spawn $"echo "++d++" > ~/.xmonad/.xmonad-layout-log")) -- Rotate available layouts
-    , ((modm .|. shiftMask,     xK_space ), toSubl NextLayout)
+    , ((modm .|. shiftMask,     xK_space ), toSubl NextLayout                           )
     , ((modm .|. controlMask,   xK_space ), setLayout $ XMonad.layoutHook conf          ) -- Reset layouts on current workspace
-    -- , ((modm,                   xK_f     ), sendMessage $ LC.JumpToLayout "Hidden idk"  ) -- >> sendMessage ToggleStruts >> spawn "polybar-msg cmd toggle") -- Toggles Fullscreen
-    , ((modm,                   xK_grave ), layoutPrompt shXPConfig                     ) -- Layout Prompt
         -- Workspaces -----------------------------------------------------------------------------
     , ((modm .|. controlMask,   xK_Right ), nextWS                                      ) -- Cycle Right
     , ((modm .|. controlMask,   xK_Left  ), prevWS                                      ) -- Cycle Left
         -- Tabs -----------------------------------------------------------------------------------
-    , ((modm,                   xK_semicolon ), CK.bindOn CK.LD [("M Tab", windows W.focusUp),("", onGroup W.focusUp')]    ) -- Focus next tab up
+    , ((modm,                   xK_semicolon ), CK.bindOn CK.LD [("M Tab", windows W.focusUp),  ("", onGroup W.focusUp')]  ) -- Focus next tab up
     , ((modm,                   xK_apostrophe), CK.bindOn CK.LD [("M Tab", windows W.focusDown),("", onGroup W.focusDown')]) -- Focus next tab down
     , ((modm .|. shiftMask,     xK_semicolon ), windows W.swapUp                        ) -- Swap tab up
     , ((modm .|. shiftMask,     xK_apostrophe), windows W.swapDown                      ) -- Swap tab down
@@ -834,6 +649,17 @@ myKeys conf@(XConfig {XMonad.modMask = modm}) = M.fromList $
     , ((modm .|. controlMask,   xK_l         ), sendMessage $ pullGroup D               ) -- Pull group from the right
     , ((modm,                   xK_z         ), withFocused (sendMessage . UnMerge)     ) -- Unmerges focused window from sublayout
     , ((modm .|. shiftMask,     xK_z         ), withFocused (sendMessage . MergeAll)    ) -- Merges all windows into sublayout
+        -- BSP --------------------------------------------------------------------------------
+    -- , ((modm,    xK_semicolon ), CK.bindOn CK.LD [("Shadolayout", windows W.focusUp),  ("", onGroup W.focusUp')]  ) -- Change size BSP
+    -- , ((modm,    xK_apostrophe), CK.bindOn CK.LD [("Shadolayout", windows W.focusDown),("", onGroup W.focusDown')]) -- Change size BSP
+    -- , ((modm,                 xK_h     ), CK.bindOn CK.LD [("Shadolayout", sendMessage $ ExpandTowards L)])
+    -- , ((modm,                 xK_j     ), sendMessage $ ExpandTowards D)
+    -- , ((modm,                 xK_k     ), sendMessage $ ExpandTowards U)
+    -- , ((modm,                 xK_k     ), sendMessage $ ExpandTowards R)
+    -- , ((modm .|. shiftMask,   xK_h     ), sendMessage $ ShrinkFrom L   )
+    -- , ((modm .|. shiftMask,   xK_j     ), sendMessage $ ShrinkFrom D   )
+    -- , ((modm .|. shiftMask,   xK_k     ), sendMessage $ ShrinkFrom U   )
+    -- , ((modm .|. shiftMask,   xK_l     ), sendMessage $ ShrinkFrom R   )
         -- Windows --------------------------------------------------------------------------------
     , ((modm .|. shiftMask,     xK_c     ), kill                                        ) -- close window
     , ((modm,                   xK_n     ), refresh                                     ) -- Resize viewed windows to the correct size
@@ -858,60 +684,56 @@ myKeys conf@(XConfig {XMonad.modMask = modm}) = M.fromList $
       -- Scratchpads ----------------------------------------------------------------------------
     , ((modm,                   xK_s), namedScratchpadAction myScratchPads "terminal"   ) -- Terminal Scrtchpd
     , ((modm .|. shiftMask,     xK_s), namedScratchpadAction myScratchPads "ncmpcpp"    ) -- Ncmpcpp Scrtchpd
-        -- Multimedia (Volume, MPD) ---------------------------------------------------------------
-    , ((0,                      0x1008FF11), spawn "pulsemixer --change-volume -2"      ) -- Volume Down 
-    , ((0,                      0x1008FF13), spawn "pulsemixer --change-volume +2"      ) -- Volume Up
-    , ((0,                      0x1008FF12), spawn "pulsemixer --toggle-mute"           ) -- Mute
-    , ((0,                      0x1008FF14), spawn "mpc toggle"                         ) -- Play/Pause
-    , ((modm,                   0x1008FF15), spawn "mpc shuffle"                        ) -- Shuffle
-    , ((0,                      0x1008FF16), spawn "mpc prev"                           ) -- Prev Track
-    , ((0,                      0x1008FF17), spawn "mpc next"                           ) -- Next Track
+        -- Multimedia (Volume, MPD) ---------------------------------------------------------------------
+    , ((0,                          0x1008FF11), spawn "pulsemixer --change-volume -2"                   ) -- Volume Down 
+    , ((0,                          0x1008FF13), spawn "pulsemixer --change-volume +2"                   ) -- Volume Up
+    , ((0,                          0x1008FF12), spawn "pulsemixer --toggle-mute"                        ) -- Mute
+    , ((0,                          0x1008FF14), spawn "mpc toggle"                                      ) -- Play/Pause
+    , ((modm,                       0x1008FF15), spawn "mpc shuffle"                                     ) -- Shuffle
+    , ((0,                          0x1008FF16), spawn "mpc prev"                                        ) -- Prev Track
+    , ((0,                          0x1008FF17), spawn "mpc next"                                        ) -- Next Track
         -- Brightness
-    , ((0,                      0x1008FF02), spawn "xbacklight -inc 2"                  ) -- Inc Brightness
-    , ((0,                      0x1008FF03), spawn "xbacklight -dec 2"                  ) -- Dec Brightness
-        -- Youtube Download --------------------------------------------------------------------------------------
+    , ((0,                          0x1008FF02), spawn "xbacklight -inc 2"                               ) -- Inc Brightness
+    , ((0,                          0x1008FF03), spawn "xbacklight -dec 2"                               ) -- Dec Brightness
+        -- Youtube Download ------------------------------------------------------------------------------
     , ((modm .|. shiftMask,         xK_y      ), spawn "ytdl"                                            ) -- Yt->Mpv script
-        -- Open Applications -------------------------------------------------------------------------------------
+        -- Open Applications -----------------------------------------------------------------------------
     , ((modm,                       xK_KP_Multiply), spawn "wall-d ~/Pictures/Backgrounds"               ) -- Wall-d
     , ((mods,                       xK_b      ), spawn myBrowser                                         ) -- Browser
     , ((mods .|. controlMask,       xK_m      ), spawn (myTerminal ++ "calcurse")                        ) -- Calcurse
     , ((mods .|. shiftMask,         xK_d      ), spawn "discord"                                         ) -- Discord
+    , ((mods .|. controlMask,       xK_d      ), spawn "killall Discord"                                 ) -- Kill Discord
     , ((mods .|. shiftMask,         xK_v      ), spawn (myTerminal ++ myFilemngr)                        ) -- File Manager
     , ((mods .|. shiftMask,         xK_a      ), spawn (myTerminal ++ "pulsemixer")                      ) -- Mixer
     , ((mods .|. shiftMask,         xK_m      ), spawn (myTerminal ++ "ncmpcpp")                         ) -- Ncmpcpp
     , ((mods .|. shiftMask,         xK_w      ), spawn (myTerminal ++ "nmtui")                           ) -- Netork
     , ((mods .|. shiftMask,         xK_h      ), spawn (myTerminal ++ "htop")                            ) -- Processes
-    , ((mods .|. shiftMask,         xK_s      ), spawn "~/.config/rofi/scripts/menu_powermenu.sh"        ) -- Processes
-    , ((mods,                       xK_e      ), spawn "emacsclient -c"                                     ) -- Emacsclient
+    , ((mods .|. shiftMask,         xK_s      ), spawn "~/.config/rofi/scripts/menu_powermenu.sh"        ) -- Powermenu
+    , ((mods,                       xK_e      ), spawn "emacsclient -c"                                  ) -- Emacsclient
     , ((mods .|. shiftMask,         xK_e      ), spawn "emacs"                                           ) -- Emacs
     , ((mods .|. controlMask,       xK_e      ), spawn (myTerminal ++ "emacs -nw")                       ) -- Emacs NW
     , ((mods,                       xK_g      ), spawn "ghidra"                                          ) -- Ghidra
-        -- Screenshots -------------------------------------------------------------------------------------------
+        -- Screenshots -----------------------------------------------------------------------------------
     , ((shiftMask .|. controlMask,  xK_Print  ), spawn "flameshot gui -p ~/Pictures/Screenshots"         ) -- Area
     , ((0,                          xK_Print  ), spawn "scrot '~/Pictures/Screenshots/%F_%T.png'"        ) -- Fullscreen
     , ((mods .|. modm,              xK_Print  ), spawn "flameshot screen -r -c -p ~/Pictures/Screenshots") -- Monitor
     , ((controlMask,                xK_Print  ), spawn "scrot -u '~/Pictures/Screenshots'"               ) -- Window
     , ((modm .|. controlMask,       xK_Print  ), spawn "~/.config/scripts/imgurup"                       ) -- Imgur
-        -- Grid Select -------------------------------------------------------------------------------------------
+        -- Grid Select -----------------------------------------------------------------------------------
     , ((modm,                       xK_g      ), goToSelected $ mygridConfig myGridTheme                 ) -- Go to grid item
     , ((modm .|. shiftMask,         xK_g      ), bringSelected $ mygridConfig myGridTheme                ) -- Grab and brind over grid item
-    , ((modm .|. controlMask,       xK_g      ), spawnSelected' myAppGrid                                ) -- Custom program list
-        -- Tree Select -------------------------------------------------------------------------------------------
-    , ((modm .|. controlMask,       xK_t      ), tsAction myTreeSelConfig                                ) -- Custom program list
-        -- Search Engine -----------------------------------------------------------------------------------------
+        -- Search Engine ---------------------------------------------------------------------------------
     , ((modm,                      xK_slash   ), SM.submap $ searchEngineMap $ S.promptSearch shXPConfig') -- Searches via prompt
     , ((modm .|. shiftMask,        xK_slash   ), SM.submap $ searchEngineMap $ S.selectSearch            ) -- Searches via clipboard
-        -- Prompts -----------------------------------------------------------------------------------------------
+        -- Prompts ---------------------------------------------------------------------------------------
     , ((mods,                      xK_x       ), SM.submap $ promptMap                                   ) -- Prompts submap
     ]
-    -- ++ [((modm, 0), zipM' dirKeys dirs windowGo True)]
     ++
     [((m .|. modm, k), windows $ onCurrentScreen f i)
         | (i, k) <- zip (workspaces' conf) [xK_1 .. xK_9]
         , (f, m) <- [(W.greedyView, 0), (W.shift, shiftMask)]]
     ++
-    -- mod-{w,e,r}, Switch to physical/Xinerama screens 1, 2, or 3 mod-shift-{w,e,r}, Move client to screen 1, 2, or 3
-    [((m .|. modm, key), screenWorkspace sc >>= flip whenJust (windows . f))
+    [((m .|. modm, key), screenWorkspace sc >>= flip whenJust (windows . f)) --mod-{w,e,r}, Switch to physical/Xinerama screens 1, 2, or 3 mod-shift-{w,e,r}, Move client to screen 1, 2, or 3
         | (key, sc) <- zip [xK_w, xK_e, xK_r] [0..]
         , (f, m) <- [(W.view, 0), (W.shift, shiftMask)]]
     where
@@ -931,7 +753,6 @@ myKeys conf@(XConfig {XMonad.modMask = modm}) = M.fromList $
              ]
         promptMap = M.fromList $
             [ ((0, xK_m), manPrompt shXPConfig)
-            , ((0, xK_l), layoutPrompt shXPConfig)
             , ((0, xK_s), spawn myDmenuWebSearch)
             , ((0, xK_t), spawn myDmenuTodo)
             , ((0, xK_c), spawn myDmenuClipMenu)
@@ -943,13 +764,150 @@ myKeys conf@(XConfig {XMonad.modMask = modm}) = M.fromList $
 -- Mouse bindings: {{{
 ------------------------------------------------------------------------
 myMouseBindings (XConfig {XMonad.modMask = modm}) = M.fromList $
-    -- mod-button1, Set the window to floating mode and move by dragging
-    [ ((modm, button1), (\w -> focus w >> mouseMoveWindow w >> windows W.shiftMaster))
-    -- mod-button2, Raise the window to the top of the stack
-    , ((modm, button2), (\w -> focus w >> windows W.shiftMaster))
-    -- mod-button3, Set the window to floating mode and resize by dragging
-    , ((modm, button3), (\w -> focus w >> mouseResizeWindow w >> windows W.shiftMaster))
-    -- you may also bind events to the mouse scroll wheel (button4 and button5)
-    ]
+    [ ((modm, button1), (\w -> focus w >> mouseMoveWindow w >> windows W.shiftMaster)) -- mod-button1, Set the window to floating mode and move by dragging
+    , ((modm, button2), (\w -> focus w >> windows W.shiftMaster)) -- mod-button2, Raise the window to the top of the stack
+    , ((modm, button3), (\w -> focus w >> mouseResizeWindow w >> windows W.shiftMaster)) -- mod-button3, Set the window to floating mode and resize by dragging
+    ] -- you may also bind events to the mouse scroll wheel (button4 and button5)
+---------------------------------------------------------------------}}}
+-- Comments: {{{
+------------------------------------------------------------------------
+-- mkLayoutStr :: String -> String -> String -> String
+-- mkLayoutStr colour logo rep =
+--   concat ["%{T2}%{F", colour, "} ", logo, "%{T-}%{F", "#f55966", "} ", rep]
+
+
+-- layoutParse :: String -> String
+-- layoutParse s | s == "Float"              = mkLayoutStr "#b789cd" "+++ " "FLT "
+--               | s == "Hidden Tall"        = mkLayoutStr "#6a5acd" "||+ " "| T |"
+--               | s == "Hidden Mirror Tall" = mkLayoutStr "#6a5acd" "||| " "| M(T) |"
+--               | s == "Hidden Monocle"     = mkLayoutStr "#87b0d6" "||| " "| M |"
+--               | s == "Hidden M Tab"       = mkLayoutStr "#8be9fd" "___ " "| MT |"
+--               | s == "Fullscreen"         = mkLayoutStr "#bd93f9" "| | " "| F |"
+--               | s == "Hidden Shadolayout" = mkLayoutStr "#b789cd" "| | " "| Shado |"
+--               | otherwise               = s -- fallback for changes in C.Layout
+
+    -- , ((modm,                   xK_space ), sendMessage NextLayout >> (dynamicLogString def >>= \d->spawn $"echo "++d++" > ~/.xmonad/.xmonad-layout-log"))
+    -- , ((modm .|. shiftMask,     xK_space ), toSubl NextLayout >> (dynamicLogString def >>= \d->spawn $"echo "++d++" > ~/.xmonad/.xmonad-layout-log")) -- Rotate available layouts
 --}}}
+-- Tree Select: {{{
+--------------------------------------------------------------------------------
+-- tsAction :: TS.TSConfig (X ()) -> X ()
+-- tsAction a = TS.treeselectAction a
+--     [ Node (TS.TSNode "My Apps" "List of many gui/tui applications" (return ()))
+--       [Node (TS.TSNode (TE.fst3 $ myApplications !! n)
+--                        (TE.thd3 $ myApplications !! n)
+--                        (spawn $ TE.snd3 $ myApplications !! n)
+--             ) [] | n <- [0..(length myApplications - 1)]
+--       ]
+--     , Node (TS.TSNode "My Bookmarks" "List of my more important bookmarks" (return ()))
+--       [Node (TS.TSNode (TE.fst3 $ myBookmarks !! n)
+--                        (TE.thd3 $ myBookmarks !! n)
+--                        (spawn $ TE.snd3 $ myBookmarks !! n)
+--             ) [] | n <- [0..(length myBookmarks - 1)]
+--       ]
+--     , Node (TS.TSNode "My Files" "List of my most used files" (return ()))
+--       [Node (TS.TSNode (TE.fst3 $ myFiles !! n)
+--                        (TE.thd3 $ myFiles !! n)
+--                        (spawn $ TE.snd3 $ myFiles !! n)
+--             ) [] | n <- [0..(length myFiles - 1)]
+--       ]
+--     ]
+
+-- myTreeSelConfig :: TS.TSConfig a
+-- myTreeSelConfig  = TS.TSConfig { TS.ts_hidechildren = True
+--                                , TS.ts_background   = 0x7A1B1B29
+--                                , TS.ts_font         = myFont
+--                                , TS.ts_node         = (0xffbfaae3, 0xff202331)
+--                                , TS.ts_nodealt      = (0xffbfaae3, 0xff292d3e)
+--                                , TS.ts_highlight    = (0xffffffff, 0xff755999)
+--                                , TS.ts_extra        = 0xffbfaae3
+--                                , TS.ts_node_width   = 200
+--                                , TS.ts_node_height  = 20
+--                                , TS.ts_originX      = 0
+--                                , TS.ts_originY      = 0
+--                                , TS.ts_indent       = 80
+--                                , TS.ts_navigate     = myTreeNav
+--                                }
+
+-- myTreeNav = M.fromList
+--     [ ((0, xK_Escape),  TS.cancel          )
+--     , ((0, xK_Return),  TS.select          )
+--     , ((0, xK_space ),  TS.select          )
+--     , ((0, xK_Up    ),  TS.movePrev        )
+--     , ((0, xK_Down  ),  TS.moveNext        )
+--     , ((0, xK_Left  ),  TS.moveParent      )
+--     , ((0, xK_Right ),  TS.moveChild       )
+--     , ((0, xK_k     ),  TS.movePrev        )
+--     , ((0, xK_j     ),  TS.moveNext        )
+--     , ((0, xK_h     ),  TS.moveParent      )
+--     , ((0, xK_l     ),  TS.moveChild       )
+--     , ((0, xK_o     ),  TS.moveHistBack    )
+--     , ((0, xK_i     ),  TS.moveHistForward )
+--     ]
+
+-----------------------------------------------------------------------------}}}
+-- My Everything: {{{
+--------------------------------------------------------------------------------
+-- myApplications :: [(String, String, String)]
+-- myApplications = [ ("Shadoplan", (myTerminal ++ "sp"), "My TODO program")
+--                  , ("Neovim", (myTerminal ++ "nvim"), "My TODO program")
+--                  , ("My Wiki", (myTerminal ++ "nvim ~/vimwiki/index.md"), "My personal wiki")
+--                  , ("Audacity", "audacity", "Music/Audio editor and recorder")
+--                  , ("Krita", "krita", "Advanced art/drawing program")
+--                  , ("Dolphin", "dolphin", "GUI File manager")
+--                  , ("Discord", "Discord", "Communications Software")
+--                  , ("Irssi", (myTerminal ++ "irssi"), "IRC Client")
+--                  , ("Calcurse", (myTerminal ++ "calcurse"), "TUI Calendar useful for many things")
+--                  , ("Qutebrowser", "qutebrowser", "Lightweight qt5 browser")
+--                  , ("Lynx Browser", (myTerminal ++ "lynx"), "TUI Browser")
+--                  , ("Firefox", "firefox", "Main browser")
+--                  , ("Minecraft", "minecraft-launcher", "I mean just Minecraft")
+--                  , ("Lutris", "lutris", "Game launcher")
+--                  , ("Evince", "evince", "Simple PDF Viewer")
+--                  ]
+
+-- myBookmarks :: [(String, String, String)]
+-- myBookmarks  = [ ("XMonad Doc Extending", myBrowser ++ "http://hackage.haskell.org/package/xmonad-contrib-0.16/docs/XMonad-Doc-Extending.html", "Massive doc page for XMonad")
+--                  -- Programming
+--                , ("Learn you a haskell", myBrowser ++ "http://learnyouahaskell.com/chapters", "Amazing book for haskell lang")
+--                , ("Assembly Programming Tutorial", myBrowser ++ "https://www.tutorialspoint.com/assembly_programming/", "Very good guide to assembly")
+--                , ("Guide to x86 Assembly", myBrowser ++ "http://www.cs.virginia.edu/~evans/cs216/guides/x86.html", "Nice asm guide")
+--                , ("CPP Reference", myBrowser ++ "https://en.cppreference.com/w/", "For all things C/C++")
+--                , ("Programming E-Books", myBrowser ++ "https://github.com/trumpowen/All-Programming-E-Books-PDF#c-books", "Big 'awesome' github, with a dump of prog books for many langs")
+--                  -- Font
+--                , ("Text to ASCII Art Generator", myBrowser ++ "http://patorjk.com/software/taag/#p=testall&f=Graffiti&t=Shado.vim", "Great site for ascii text/art")
+--                , ("FontDrop!", myBrowser ++ "https://fontdrop.info/", "Site to view fonts")
+--                , ("Nerd Fonts Cheatsheet", myBrowser ++ "https://www.nerdfonts.com/cheat-sheet", "Site for nerd font icons")
+--                  -- Security/Hacking
+--                , ("Hack The Box", myBrowser ++ "https://hackthebox.eu", "Amazing resource for getting out there with sec/hacking")
+--                , ("TryHackMe", myBrowser ++ "https://tryhackme.com", "Another good CTF/Learning type resource")
+--                , ("Reverse Engineering 101", myBrowser ++ "https://malwareunicorn.org/workshops/re101.html#0", "Great reversing walkthrough (covers alot of malware analysis)")
+--                , ("Mem Labs", myBrowser ++ "https://github.com/stuxnet999/MemLabs", "Very good memory forensics resource")
+--                , ("0x00 Sec", myBrowser ++ "https://0x00sec.org/", "The 'Reddit' for all things Security")
+--                , ("Thug Crowd", myBrowser ++ "https://thugcrowd.com/archive.html", "Some fun hacking exercises")
+--                , ("Hacking Books", myBrowser ++ "https://haxf4rall.com/hacking-books/", "Site for free security books")
+--                ]
+
+-- myFiles :: [(String, String, String)]
+-- myFiles  = [ ("XMonad Config", myEditor ++ "~/.xmonad/xmonad.hs", "My xmonad configuration file")
+--            , ("Doom Config", myEditor ++ "~/.doom.d/config.el", "My doom emacs config.el file")
+--            , ("Doom Init", myEditor ++ "~/.doom.d/init.el", "My doom emacs init.el file")
+--            , ("Dwm Config", myEditor ++ "~/dwm/config.h", "My dwm configuration file")
+--            , ("Zshrc", myEditor ++ "~/.zshrc", "My zsh config file")
+--             ]
+
+-- Allows me to use the same functions for treeselect in gridselect
+-- myAppGrid :: [(String, String)]
+-- myAppGrid = [ (a,b) | (a,b,c) <- xs]
+--   where xs = myApplications
+        
+-- myBookmarksGrid :: [(String, String)]
+-- myBookmarksGrid  = [ (a,b) | (a,b,c) <- xs]
+--   where xs = myBookmarks
+
+-- myFilesGrid :: [(String, String)]
+-- myFilesGrid  = [ (a,b) | (a,b,c) <- xs]
+--   where xs = myFiles
+
+-----------------------------------------------------------------------------}}}
 -------------------------------------------------------------------------------
