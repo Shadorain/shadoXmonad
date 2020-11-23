@@ -129,8 +129,10 @@ windowCount     = gets $ Just . show . length . W.integrate' . W.stack . W.works
 myLauncher       = "$HOME/.config/scripts/run-recent"-- Set main launcher
 myLauncherCalc   = "$HOME/.config/scripts/="-- Set main launcher
 myDmenuWebSearch = "$HOME/.config/scripts/dmenu_websearch" -- Dmenu web search prompt
-myDmenuTodo      = "$HOME/.config/scripts/todo" -- Dmenu todo prompt
+myDmenuTodo      = "$HOME/.config/scripts/shadotask" -- Dmenu todo prompt
+-- myDmenuTodo      = "$HOME/.config/scripts/todo" -- Dmenu todo prompt
 myDmenuClipMenu  = "clipmenu" -- Dmenu todo prompt
+myDmenuMPDMenu   = "$HOME/.config/scripts/mpdmenu" -- Dmenu todo prompt
 
     -- Borders
 myBorderWidth   = 0
@@ -332,7 +334,7 @@ myLayoutHook = fullScreenToggle
 myManageHook = (composeAll . concat $
     [[ className =? "lutris"                  --> doFloat ]
     ,[ className =? "wall-d"                  --> doFloat ]
-    ,[ className =? "Sxiv"                    --> doFloat ]
+    -- ,[ className =? "Sxiv"                    --> doFloat ]
     ,[ resource  =? "desktop_window"          --> doIgnore ] ])
         -- where
         --     role = stringProperty "WM_WINDOW_ROLE"
@@ -384,6 +386,7 @@ myStartupHook = do
     -- spawn "feh --bg-scale --no-fehbg $HOME/Pictures/Backgrounds/purps.png &"
     -- spawn "feh --bg-scale --no-fehbg $HOME/Pictures/Backgrounds/winter-sun2.jpg &"
     spawn "feh --bg-scale --no-fehbg $HOME/Pictures/Backgrounds/forest.png &"
+    -- spawn "feh --bg-scale --no-fehbg $HOME/Pictures/Backgrounds/flower.png &"
     -- spawn "feh --bg-scale --no-fehbg $HOME/Pictures/Backgrounds/ghosts3-2.jpg &"
     -- spawn "/home/shadow/.gem/ruby/2.7.0/bin/fusuma &"
     spawn "flashfocus &"
@@ -438,7 +441,7 @@ logger = withWindowSet $ \ws -> do
   io $ System.IO.appendFile ("/home/shadow/.xmonad/xmonad-layout") (layoutName ++ "\n")
 
 myLogHook = do
-    ewmhDesktopsLogHookCustom (map unmarshallWindowSpace . namedScratchpadFilterOutWorkspace . workspacesOn 0)
+    ewmhDesktopsLogHookCustom (map unmarshallWindowSpace . workspacesOn 0 . namedScratchpadFilterOutWorkspace)
     logger
 ----------------------------------------------------------------------------}}}
 -- Grid Select: {{{
@@ -574,7 +577,7 @@ projects :: [Project]
 projects =
   [ Project { projectName      = "Shado Shell"
             , projectDirectory = "~/ShadoSH"
-            , projectStartHook = Just $ do spawn (myTerminal ++ "nvim")
+            , projectStartHook = Just $ do spawn (myTerminal ++ "-e nvim")
             }
   , Project { projectName      = "Research"
             , projectDirectory = "~/"
@@ -611,7 +614,8 @@ myKeys conf@(XConfig {XMonad.modMask = modm}) = M.fromList $
     , ((mods.|.controlMask,     xK_F12   ), spawn "~/.config/scripts/switch_gpu"        ) -- Switch GPU
     , ((modm,                   xK_F9    ), spawn "killall picom"                       ) -- Kill picom
     , ((modm .|. shiftMask,     xK_F9    ), spawn "picom --experimental-backends &"     ) -- Start Picom
-    -- , ((modm .|. shiftMask,     xK_x     ), shiftToProjectPrompt                        ) -- Project Prompt
+    , ((modm .|. shiftMask,     xK_x     ), shiftToProjectPrompt shXPConfig             ) -- Project Prompt
+   -- , ((modm .|. shiftMask,     xK_x     ), switchProjectPrompt shXPConfig              ) -- Project Prompt
         -- Session --------------------------------------------------------------------------------
     , ((modm .|. shiftMask,     xK_m     ), spawn "lwsm save"   ) -- Save Session
     , ((modm .|. controlMask,   xK_m     ), spawn "lwsm restore") -- Restore session
@@ -621,12 +625,14 @@ myKeys conf@(XConfig {XMonad.modMask = modm}) = M.fromList $
     , ((modm .|. controlMask,   xK_p     ), spawn myLauncherCalc                                                            ) -- Calculator
     , ((modm,                   xK_b     ), sendMessage ToggleStruts >> spawn "polybar-msg cmd toggle"                      ) -- Toggle Bar
     , ((modm .|. shiftMask,     xK_b     ), sendMessage $ (MT.Toggle NOBORDERS)                                             ) -- Toggle Borders
-    , ((modm .|. controlMask,   xK_n     ), spawn (myTerminal ++ "nmcli dev wifi connect GENEVASTUDENT")                    ) -- Restart net GENEVASTUDENT
+    -- , ((modm .|. controlMask,   xK_n     ), spawn (myTerminal ++ "nmcli dev wifi connect GENEVASTUDENT")                    ) -- Restart net GENEVASTUDENT
+    , ((modm .|. controlMask,   xK_n     ), spawn (myTerminal ++ "nmcli dev wifi connect 'ionit 2.4'")                    ) -- Restart net
     , ((modm,     xK_KP_Add     ), spawn "feh --bg-scale --no-fehbg $HOME/Pictures/Backgrounds/pretty.jpg &"                ) -- Set Lofi Background
     , ((modm,     xK_KP_Subtract), spawn "feh --bg-scale --no-fehbg $HOME/Pictures/Backgrounds/forest.png &"                ) -- Set Forest Background
     , ((mods,                   xK_d     ), spawn dateScript                                                                ) -- Display date
     , ((modm,                   xK_o     ), spawn bigO                                                                      ) -- BigOcheatsheet
-    , ((modm,                   xK_F7    ), spawn "~/.screenlayout/scs.sh"                                                  ) -- Fix Screens
+    -- , ((modm,                   xK_F7    ), spawn "~/.screenlayout/scs.sh; xmonad --restart"                                                  ) -- Fix Screens
+    , ((modm,                   xK_F7    ), spawn "~/.screenlayout/home.sh; xmonad --restart"                                                  ) -- Fix Screens
     , ((modm .|. controlMask,   xK_b     ), spawn "killall polybar; polybar -c ~/.config/shadobar/config-xmonad shadobar"   ) -- Restart polybar
     , ((mods,                   xK_p     ), spawn "betterlockscreen -l blur -r 1920x1080 -b 0.2 -t 'Welcome back, Shado...'") -- Lock Screen
         -- Layouts --------------------------------------------------------------------------------
@@ -669,7 +675,7 @@ myKeys conf@(XConfig {XMonad.modMask = modm}) = M.fromList $
     , ((modm,                   xK_Tab   ), windows W.focusDown                         ) -- Focus next
     , ((modm,                   xK_j     ), windows W.focusDown                         ) -- Focus next
     , ((modm,                   xK_k     ), windows W.focusUp                           ) -- Focus prev
-    , ((modm,                   xK_m     ), windows W.focusMaster                       ) -- Focus master
+    -- , ((modm,                   xK_m     ), windows W.focusMaster                       ) -- Focus master
     , ((modm,                   xK_Return), windows W.swapMaster                        ) -- Swap focused win with master
     , ((modm .|. shiftMask,     xK_j     ), windows W.swapDown                          ) -- Swap focused win with next win
     , ((modm .|. shiftMask,     xK_k     ), windows W.swapUp                            ) -- Swap focused win with previous win
@@ -726,6 +732,7 @@ myKeys conf@(XConfig {XMonad.modMask = modm}) = M.fromList $
     , ((modm,                      xK_slash   ), SM.submap $ searchEngineMap $ S.promptSearch shXPConfig') -- Searches via prompt
     , ((modm .|. shiftMask,        xK_slash   ), SM.submap $ searchEngineMap $ S.selectSearch            ) -- Searches via clipboard
         -- Prompts ---------------------------------------------------------------------------------------
+    , ((modm,                      xK_m       ), spawn myDmenuMPDMenu                                          ) -- MPD Menu
     , ((mods,                      xK_x       ), SM.submap $ promptMap                                   ) -- Prompts submap
     ]
     ++
@@ -734,7 +741,7 @@ myKeys conf@(XConfig {XMonad.modMask = modm}) = M.fromList $
         , (f, m) <- [(W.greedyView, 0), (W.shift, shiftMask)]]
     ++
     [((m .|. modm, key), screenWorkspace sc >>= flip whenJust (windows . f)) --mod-{w,e,r}, Switch to physical/Xinerama screens 1, 2, or 3 mod-shift-{w,e,r}, Move client to screen 1, 2, or 3
-        | (key, sc) <- zip [xK_w, xK_e, xK_r] [0..]
+        | (key, sc) <- zip [xK_e, xK_w, xK_r] [0..]
         , (f, m) <- [(W.view, 0), (W.shift, shiftMask)]]
     where
         searchEngineMap method = M.fromList $
