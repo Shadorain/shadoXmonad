@@ -18,7 +18,7 @@ import qualified XMonad.StackSet as W
 
     -- Actions
 import XMonad.Actions.CycleWS  --(moveTo, shiftTo, WSType(..), nextScreen, prevScreen)
-import qualified XMonad.Actions.ConditionalKeys  as CK
+-- import qualified XMonad.Actions.ConditionalKeys  as CK
 -- import XMonad.Actions.Commands
 import XMonad.Actions.CopyWindow
 import XMonad.Actions.DynamicProjects
@@ -59,6 +59,7 @@ import XMonad.Layout.BinarySpacePartition
 import XMonad.Layout.Fullscreen
 import XMonad.Layout.NoFrillsDecoration
 import XMonad.Layout.ResizableTile
+import XMonad.Layout.ResizeScreen
 -- import XMonad.Layout.Spiral
 import XMonad.Layout.SubLayouts
 import XMonad.Layout.Tabbed
@@ -126,7 +127,7 @@ windowCount     = gets $ Just . show . length . W.integrate' . W.stack . W.works
 
     -- Dmenu
 -- myDmenuFlags     = " -fn 'Agave:size=12' -nb '#1B1B29' -nf '#8897F4' -sb '#2F2F4A' -sf '#ff79c6'" -- Color flags for dmenu
-myLauncher       = "$HOME/.config/scripts/run-recent"-- Set main launcher
+myLauncher       = "dmenu_run"-- Set main launcher
 myLauncherCalc   = "$HOME/.config/scripts/="-- Set main launcher
 myDmenuWebSearch = "$HOME/.config/scripts/dmenu_websearch" -- Dmenu web search prompt
 myDmenuTodo      = "$HOME/.config/scripts/shadotask" -- Dmenu todo prompt
@@ -306,6 +307,9 @@ myLayoutHook = fullScreenToggle
     mirrorTiled      = named "Mirror Tall" $ avoidStruts(Mirror tiled) -- Default master stack but horizontal (No Gaps)
     monocle          = named "Monocle" $ avoidStruts(fullScreenToggle Full)
 
+    -- spanFull         = named "Span Full"
+    --     $
+
     masterTabbed     = named "Master Tabbed"
         $ avoidStruts
         $ addOverline
@@ -396,6 +400,8 @@ myStartupHook = do
     spawn "killall polybar; polybar -c ~/.config/shadobar/config-xmonad shadobar" -- 2>~/.config/shadobar/log"
     -- spawn "killall udiskie; udiskie -s -a -n &"
     spawn "xset r rate 200 30"
+    -- spawn "pulseaudio --start"
+    spawn "dbus-run-session --exit-with-session xmonad"
     -- spawn "sleep 1; killall stalonetray; stalonetray &"
     -- spawn "sleep 1; killall nm-applet; nm-applet &"
     -- spawn "killall blueprox; blueprox & ; blueprox &"
@@ -552,24 +558,33 @@ shXPKeymap = M.fromList $
 -------------------------------------------------------------------------------
 myScratchPads :: [NamedScratchpad]
 myScratchPads = [ NS "terminal" spawnTerm findTerm manageTerm
-                , NS "ncmpcpp" spawnNcmpcpp findNcmpcpp manageNcmpcpp ]
+                , NS "ncmpcpp" spawnNcmpcpp findNcmpcpp manageNcmpcpp
+                , NS "nvim" spawnNvim findNvim manageNvim ]
     where
         spawnTerm    = myTerminal ++ " -n scratchpad"
         findTerm     = resource =? "scratchpad"
-        manageTerm   = customFloating $ W.RationalRect l t w h
+        manageTerm   = customFloating $ W.RationalRect x y w h
                        where
-                       l = 0.2
-                       t = 0.2
+                       x = 0.2
+                       y = 0.2
                        w = 0.6
                        h = 0.6
         spawnNcmpcpp  = myTerminal ++ " -n 'ncmpcpp_scratch' '/home/shadow/.ncmpcpp/ncmpcpp-ueberzug/ncmpcpp-ueberzug'"
         findNcmpcpp   = resource =? "ncmpcpp_scratch"
-        manageNcmpcpp = customFloating $ W.RationalRect l t w h
+        manageNcmpcpp = customFloating $ W.RationalRect x y w h
                        where
-                       l = 0.2
-                       t = 0.3
+                       x = 0.2
+                       y = 0.3
                        w = 0.6
                        h = 0.4
+        spawnNvim    = "xdotool key 'alt+w';" ++ myTerminal ++ " -n scratchvim"
+        findNvim     = resource =? "scratchvim"
+        manageNvim   = customFloating $ W.RationalRect x y w h
+                       where
+                       x = 0.005
+                       y = 0.01
+                       w = 2.99
+                       h = 0.982
 ----------------------------------------------------------------------------}}}
 -- Projects: {{{
 -------------------------------------------------------------------------------
@@ -632,9 +647,11 @@ myKeys conf@(XConfig {XMonad.modMask = modm}) = M.fromList $
     , ((mods,                   xK_d     ), spawn dateScript                                                                ) -- Display date
     , ((modm,                   xK_o     ), spawn bigO                                                                      ) -- BigOcheatsheet
     -- , ((modm,                   xK_F7    ), spawn "~/.screenlayout/scs.sh; xmonad --restart"                                                  ) -- Fix Screens
-    , ((modm,                   xK_F7    ), spawn "~/.screenlayout/home.sh; xmonad --restart"                                                  ) -- Fix Screens
+    -- , ((modm,                   xK_F7    ), spawn "~/.screenlayout/home.sh; xmonad --restart"                                                  ) -- Fix Screens
+    , ((modm,                   xK_F7    ), spawn "~/.screenlayout/triple.sh; xmonad --restart"                                                  ) -- Fix Screens
     , ((modm .|. controlMask,   xK_b     ), spawn "killall polybar; polybar -c ~/.config/shadobar/config-xmonad shadobar"   ) -- Restart polybar
-    , ((mods,                   xK_p     ), spawn "betterlockscreen -l blur -r 1920x1080 -b 0.2 -t 'Welcome back, Shado...'") -- Lock Screen
+    -- , ((mods,                   xK_p     ), spawn "betterlockscreen -l blur -r 1920x1080 -b 0.2 -t 'Welcome back, Shado...'") -- Lock Screen
+    , ((mods,                   xK_p     ), spawn "betterlockscreen -l -r 1920x1080 -t 'Welcome back, Shado...'") -- Lock Screen
         -- Layouts --------------------------------------------------------------------------------
     , ((modm,                   xK_t     ), withFocused $ windows . W.sink              ) -- Push win into tiling
     , ((modm .|. shiftMask,     xK_t     ), sendMessage $ Toggle MIRROR                 ) -- Toggles Mirror Layout mode
@@ -645,8 +662,8 @@ myKeys conf@(XConfig {XMonad.modMask = modm}) = M.fromList $
     , ((modm .|. controlMask,   xK_Right ), nextWS                                      ) -- Cycle Right
     , ((modm .|. controlMask,   xK_Left  ), prevWS                                      ) -- Cycle Left
         -- Tabs -----------------------------------------------------------------------------------
-    , ((modm,                   xK_semicolon ), CK.bindOn CK.LD [("M Tab", windows W.focusUp),  ("", onGroup W.focusUp')]  ) -- Focus next tab up
-    , ((modm,                   xK_apostrophe), CK.bindOn CK.LD [("M Tab", windows W.focusDown),("", onGroup W.focusDown')]) -- Focus next tab down
+    -- , ((modm,                   xK_semicolon ), CK.bindOn CK.LD [("M Tab", windows W.focusUp),  ("", onGroup W.focusUp')]  ) -- Focus next tab up
+    -- , ((modm,                   xK_apostrophe), CK.bindOn CK.LD [("M Tab", windows W.focusDown),("", onGroup W.focusDown')]) -- Focus next tab down
     , ((modm .|. shiftMask,     xK_semicolon ), windows W.swapUp                        ) -- Swap tab up
     , ((modm .|. shiftMask,     xK_apostrophe), windows W.swapDown                      ) -- Swap tab down
     , ((modm .|. controlMask,   xK_h         ), sendMessage $ pullGroup L               ) -- Pull group from the left
@@ -690,14 +707,15 @@ myKeys conf@(XConfig {XMonad.modMask = modm}) = M.fromList $
       -- Scratchpads ----------------------------------------------------------------------------
     , ((modm,                   xK_s), namedScratchpadAction myScratchPads "terminal"   ) -- Terminal Scrtchpd
     , ((modm .|. shiftMask,     xK_s), namedScratchpadAction myScratchPads "ncmpcpp"    ) -- Ncmpcpp Scrtchpd
+    , ((modm,                   xK_v), namedScratchpadAction myScratchPads "nvim"       ) -- Ncmpcpp Scrtchpd
         -- Multimedia (Volume, MPD) ---------------------------------------------------------------------
     , ((0,                          0x1008FF11), spawn "pulsemixer --change-volume -2"                   ) -- Volume Down 
     , ((0,                          0x1008FF13), spawn "pulsemixer --change-volume +2"                   ) -- Volume Up
     , ((0,                          0x1008FF12), spawn "pulsemixer --toggle-mute"                        ) -- Mute
-    , ((0,                          0x1008FF14), spawn "mpc toggle"                                      ) -- Play/Pause
-    , ((modm,                       0x1008FF15), spawn "mpc shuffle"                                     ) -- Shuffle
-    , ((0,                          0x1008FF16), spawn "mpc prev"                                        ) -- Prev Track
-    , ((0,                          0x1008FF17), spawn "mpc next"                                        ) -- Next Track
+    , ((0,                          0x1008FF14), spawn "mpc --host=localhost --port=6601 toggle"                                      ) -- Play/Pause
+    , ((modm,                       0x1008FF15), spawn "mpc --host=localhost --port=6601 shuffle"                                     ) -- Shuffle
+    , ((0,                          0x1008FF16), spawn "mpc --host=localhost --port=6601 prev"                                        ) -- Prev Track
+    , ((0,                          0x1008FF17), spawn "mpc --host=localhost --port=6601 next"                                        ) -- Next Track
         -- Brightness
     , ((0,                          0x1008FF02), spawn "xbacklight -inc 2"                               ) -- Inc Brightness
     , ((0,                          0x1008FF03), spawn "xbacklight -dec 2"                               ) -- Dec Brightness
