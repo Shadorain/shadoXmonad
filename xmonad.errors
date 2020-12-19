@@ -1,15 +1,15 @@
 
-xmonad.hs:302:24: warning: [-Wdeprecations]
+xmonad.hs:303:24: warning: [-Wdeprecations]
     In the use of ‘spacing’ (imported from XMonad.Layout.Spacing):
     Deprecated: "Use spacingRaw instead."
     |
-302 |     mySpacing        = spacing gap
+303 |     mySpacing        = spacing gap
     |                        ^^^^^^^
 
-xmonad.hs:474:18: warning: [-Wdeprecations]
+xmonad.hs:494:18: warning: [-Wdeprecations]
     In the use of ‘defaultGSConfig’
     (imported from XMonad.Actions.GridSelect):
     Deprecated: "Use def (from Data.Default, and re-exported from XMonad.Actions.GridSelect) instead."
     |
-474 |     where conf = defaultGSConfig
+494 |     where conf = defaultGSConfig
     |                  ^^^^^^^^^^^^^^^

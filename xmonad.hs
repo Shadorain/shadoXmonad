@@ -4,7 +4,7 @@
 -------------------------------------------------------------------------------
 -- TODO: 
   -- [o] have alot more layouts and sublayout abilities
-  -- [ ] Setup projects
+  -- [x] spanning layout
 -------------------------------------------------------------------------------
 -- Imports: {{{
 -------------------------------------------------------------------------------
@@ -76,6 +76,7 @@ import XMonad.Layout.Master
 import XMonad.Layout.MultiToggle --(mkToggle, single, EOT(EOT), (??))
 import XMonad.Layout.MultiToggle.Instances (StdTransformers(FULL,NBFULL, MIRROR, NOBORDERS))
 -- import XMonad.Layout.NoBorders
+import XMonad.Layout.LayoutScreens
 import XMonad.Layout.PerScreen
 -- import XMonad.Layout.PerWorkspace
 import XMonad.Layout.Renamed
@@ -278,8 +279,8 @@ myLayoutHook = fullScreenToggle
              $ reflectToggle
              $ hiddenWindows
              $ windowArrange
-             $ fixFocus
-             $ shadoLayout ||| monocle ||| tiled
+             -- $ fixFocus
+             $ shadoLayout ||| fixFocus spanFull ||| fixFocus spanMid ||| monocle ||| tiled
 
   where
     fullScreenToggle = mkToggle (single FULL)
@@ -307,8 +308,23 @@ myLayoutHook = fullScreenToggle
     mirrorTiled      = named "Mirror Tall" $ avoidStruts(Mirror tiled) -- Default master stack but horizontal (No Gaps)
     monocle          = named "Monocle" $ avoidStruts(fullScreenToggle Full)
 
-    -- spanFull         = named "Span Full"
-    --     $
+    spanFull         = named "Span Full"
+        $ avoidStruts
+        $ addOverline
+        $ windowNavigation
+        $ mySpacing
+        $ myGaps
+        $ addTabs shrinkText myTabTheme
+        $ ThreeCol 1 (1/1000) (2/3)
+
+    spanMid         = named "Span Mid"
+        $ avoidStruts
+        $ addOverline
+        $ windowNavigation
+        $ mySpacing
+        $ myGaps
+        $ addTabs shrinkText myTabTheme
+        $ ThreeColMid 1 (1/1000) (2/3)
 
     masterTabbed     = named "Master Tabbed"
         $ avoidStruts
@@ -324,10 +340,10 @@ myLayoutHook = fullScreenToggle
         $ addOverline
         $ addTabs shrinkText myTabTheme
         $ subLayout [] (Simplest ||| Accordion)
-        $ ifWider 1920 wideLayouts stdLayouts
+        $ ifWider 5760 wideLayouts stdLayouts
         where
             stdLayouts = myGaps $ mySpacing
-                $ (suffixed "T2 |" $ ResizableTall 1 (6/100) (1/2) []) |||
+                $ (suffixed "T2 |" $ ResizableTall 1 (1/100) (1/2) []) |||
                   (suffixed "BSP |" $ emptyBSP)
             wideLayouts = myGaps $ mySpacing
                 $ (suffixed "W 3C |" $ ThreeColMid 1 (1/20) (1/2)) |||
@@ -339,6 +355,7 @@ myManageHook = (composeAll . concat $
     [[ className =? "lutris"                  --> doFloat ]
     ,[ className =? "wall-d"                  --> doFloat ]
     -- ,[ className =? "Sxiv"                    --> doFloat ]
+    ,[ title =? "QEMU"                    --> doFloat ]
     ,[ resource  =? "desktop_window"          --> doIgnore ] ])
         -- where
         --     role = stringProperty "WM_WINDOW_ROLE"
@@ -390,6 +407,7 @@ myStartupHook = do
     -- spawn "feh --bg-scale --no-fehbg $HOME/Pictures/Backgrounds/purps.png &"
     -- spawn "feh --bg-scale --no-fehbg $HOME/Pictures/Backgrounds/winter-sun2.jpg &"
     spawn "feh --bg-scale --no-fehbg $HOME/Pictures/Backgrounds/forest.png &"
+    -- spawn "feh --bg-scale --no-fehbg $HOME/Pictures/Backgrounds/pixpurp.png &"
     -- spawn "feh --bg-scale --no-fehbg $HOME/Pictures/Backgrounds/flower.png &"
     -- spawn "feh --bg-scale --no-fehbg $HOME/Pictures/Backgrounds/ghosts3-2.jpg &"
     -- spawn "/home/shadow/.gem/ruby/2.7.0/bin/fusuma &"
@@ -439,7 +457,9 @@ layoutParse s | s == "Float"              = mkLayoutStr "#b789cd" "FLT"
               | s == "Hidden M Tab"       = mkLayoutStr "#8be9fd" "MT"
               | s == "Fullscreen"         = mkLayoutStr "#b789cd" "F"
               | s == "Hidden Shadolayout" = mkLayoutStr "#6a5acd" "Shado"
-              | otherwise               = s -- fallback for changes in C.Layout
+              | s == "Hidden Span Full"   = mkLayoutStr "#b789cd" "Span"
+              | s == "Hidden Span Mid"    = mkLayoutStr "#b789cd" "Mid"
+              | otherwise                 = s -- fallback for changes in C.Layout
 
 logger :: X ()
 logger = withWindowSet $ \ws -> do
@@ -655,9 +675,12 @@ myKeys conf@(XConfig {XMonad.modMask = modm}) = M.fromList $
         -- Layouts --------------------------------------------------------------------------------
     , ((modm,                   xK_t     ), withFocused $ windows . W.sink              ) -- Push win into tiling
     , ((modm .|. shiftMask,     xK_t     ), sendMessage $ Toggle MIRROR                 ) -- Toggles Mirror Layout mode
+    -- , ((modm,                   xK_space ), sequence_ [sendMessage NextLayout, rescreen]) -- Rotate available layouts
     , ((modm,                   xK_space ), sendMessage NextLayout                      ) -- Rotate available layouts
     , ((modm .|. shiftMask,     xK_space ), toSubl NextLayout                           )
     , ((modm .|. controlMask,   xK_space ), setLayout $ XMonad.layoutHook conf          ) -- Reset layouts on current workspace
+    , ((mods,                   xK_space ), layoutScreens 1 (fixedLayout [Rectangle 0 0 5760 1080])) -- Make 3 monitors into 1
+    , ((mods .|. shiftMask,     xK_space ), rescreen                                    ) -- Fix layoutScreens
         -- Workspaces -----------------------------------------------------------------------------
     , ((modm .|. controlMask,   xK_Right ), nextWS                                      ) -- Cycle Right
     , ((modm .|. controlMask,   xK_Left  ), prevWS                                      ) -- Cycle Left
@@ -688,7 +711,7 @@ myKeys conf@(XConfig {XMonad.modMask = modm}) = M.fromList $
     , ((modm,                   xK_n     ), refresh                                     ) -- Resize viewed windows to the correct size
     , ((modm,                   xK_d     ), withFocused hideWindow                      ) -- Hide focused
     , ((modm .|. shiftMask,     xK_d     ), popOldestHiddenWindow                       ) -- Show oldest hidden window
-    , ((modm,                   xK_a     ), toggleCopyToAll                             ) -- Sticky Window
+    -- , ((modm,                   xK_a     ), toggleCopyToAll                             ) -- Sticky Window
     , ((modm,                   xK_Tab   ), windows W.focusDown                         ) -- Focus next
     , ((modm,                   xK_j     ), windows W.focusDown                         ) -- Focus next
     , ((modm,                   xK_k     ), windows W.focusUp                           ) -- Focus prev
@@ -725,14 +748,15 @@ myKeys conf@(XConfig {XMonad.modMask = modm}) = M.fromList $
     , ((modm,                       xK_KP_Multiply), spawn "wall-d ~/Pictures/Backgrounds"               ) -- Wall-d
     , ((mods,                       xK_b      ), spawn myBrowser                                         ) -- Browser
     , ((mods .|. controlMask,       xK_m      ), spawn (myTerminal ++ "calcurse")                        ) -- Calcurse
-    , ((mods .|. shiftMask,         xK_d      ), spawn "discord"                                         ) -- Discord
+    , ((mods .|. shiftMask,         xK_d      ), spawn "Discord"                                         ) -- Discord
     , ((mods .|. controlMask,       xK_d      ), spawn "killall Discord"                                 ) -- Kill Discord
-    , ((mods .|. shiftMask,         xK_v      ), spawn (myTerminal ++ myFilemngr)                        ) -- File Manager
-    , ((mods .|. shiftMask,         xK_a      ), spawn (myTerminal ++ "pulsemixer")                      ) -- Mixer
-    , ((mods .|. shiftMask,         xK_m      ), spawn (myTerminal ++ "ncmpcpp")                         ) -- Ncmpcpp
-    , ((mods .|. shiftMask,         xK_w      ), spawn (myTerminal ++ "nmtui")                           ) -- Netork
-    , ((mods .|. shiftMask,         xK_h      ), spawn (myTerminal ++ "htop")                            ) -- Processes
-    , ((mods .|. shiftMask,         xK_s      ), spawn "~/.config/rofi/scripts/menu_powermenu.sh"        ) -- Powermenu
+    , ((mods,                       xK_k      ), spawn "kdeconnect-sms --style 'kvantum'"                ) -- KDEConnect SMS
+    -- , ((mods .|. shiftMask,         xK_v      ), spawn (myTerminal ++ myFilemngr)                        ) -- File Manager
+    -- , ((mods .|. shiftMask,         xK_a      ), spawn (myTerminal ++ "pulsemixer")                      ) -- Mixer
+    -- , ((mods .|. shiftMask,         xK_m      ), spawn (myTerminal ++ "ncmpcpp")                         ) -- Ncmpcpp
+    -- , ((mods .|. shiftMask,         xK_w      ), spawn (myTerminal ++ "nmtui")                           ) -- Netork
+    -- , ((mods .|. shiftMask,         xK_h      ), spawn (myTerminal ++ "htop")                            ) -- Processes
+    -- , ((mods .|. shiftMask,         xK_s      ), spawn "~/.config/rofi/scripts/menu_powermenu.sh"        ) -- Powermenu
     , ((mods,                       xK_e      ), spawn "emacsclient -c"                                  ) -- Emacsclient
     , ((mods .|. shiftMask,         xK_e      ), spawn "emacs"                                           ) -- Emacs
     , ((mods .|. controlMask,       xK_e      ), spawn (myTerminal ++ "emacs -nw")                       ) -- Emacs NW
@@ -813,7 +837,6 @@ myMouseBindings (XConfig {XMonad.modMask = modm}) = M.fromList $
 
     -- , ((modm,                   xK_space ), sendMessage NextLayout >> (dynamicLogString def >>= \d->spawn $"echo "++d++" > ~/.xmonad/.xmonad-layout-log"))
     -- , ((modm .|. shiftMask,     xK_space ), toSubl NextLayout >> (dynamicLogString def >>= \d->spawn $"echo "++d++" > ~/.xmonad/.xmonad-layout-log")) -- Rotate available layouts
---}}}
 -- Tree Select: {{{
 --------------------------------------------------------------------------------
 -- tsAction :: TS.TSConfig (X ()) -> X ()
@@ -935,4 +958,5 @@ myMouseBindings (XConfig {XMonad.modMask = modm}) = M.fromList $
 --   where xs = myFiles
 
 -----------------------------------------------------------------------------}}}
+--}}}
 -------------------------------------------------------------------------------
