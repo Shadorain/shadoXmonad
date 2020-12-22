@@ -435,7 +435,7 @@ main = do
         $ fullscreenSupport
         $ withNavigation2DConfig myNav2DConf
         $ withUrgencyHook NoUrgencyHook 
-        $ dynamicProjects projects
+        -- $ dynamicProjects projects
         $ ewmh 
         $ myConfig { workspaces = withScreens nScreens [m0ws1,m0ws2,m0ws3,m0ws4,m0ws5,m0ws6,m0ws7,m0ws8,m0ws9], logHook = myLogHook }
 ----------------------------------------------------------------------------}}}
@@ -605,32 +605,6 @@ myScratchPads = [ NS "terminal" spawnTerm findTerm manageTerm
                        y = 0.01
                        w = 2.99
                        h = 0.982
-----------------------------------------------------------------------------}}}
--- Projects: {{{
--------------------------------------------------------------------------------
-projects :: [Project]
-projects =
-  [ Project { projectName      = "Shado Shell"
-            , projectDirectory = "~/ShadoSH"
-            , projectStartHook = Just $ do spawn (myTerminal ++ "-e nvim")
-            }
-  , Project { projectName      = "Research"
-            , projectDirectory = "~/"
-            , projectStartHook = Just $ do spawn myBrowser
-                                           spawn myTerminal
-            }
-  ]
-  -- , Project { projectName      = "program"
-  --           , projectDirectory = "~/Documents/Programming/"
-  --           }
-  -- , Project { projectName      = "system"
-  --           , projectDirectory = "~/Documents/"
-  --           , projectStartHook = Just $ do spawn (myTerminal ++ "ncmpcpp")
-  --                                          spawn (myTerminal ++ "htop")
-  --           , projectStartHook = Just $ do spawn "discord"
-  --                                          spawn (myTerminal ++ "irssi")
-  --           }
-
 ----------------------------------------------------------------------------}}}
 -- Key Bindings: {{{
 -------------------------------------------------------------------------------
@@ -837,6 +811,32 @@ myMouseBindings (XConfig {XMonad.modMask = modm}) = M.fromList $
 
     -- , ((modm,                   xK_space ), sendMessage NextLayout >> (dynamicLogString def >>= \d->spawn $"echo "++d++" > ~/.xmonad/.xmonad-layout-log"))
     -- , ((modm .|. shiftMask,     xK_space ), toSubl NextLayout >> (dynamicLogString def >>= \d->spawn $"echo "++d++" > ~/.xmonad/.xmonad-layout-log")) -- Rotate available layouts
+-- Projects: {{{
+-------------------------------------------------------------------------------
+-- projects :: [Project]
+-- projects =
+--   [ Project { projectName      = "Shado Shell"
+--             , projectDirectory = "~/ShadoSH"
+--             , projectStartHook = Just $ do spawn (myTerminal ++ "-e nvim")
+--             }
+--   , Project { projectName      = "Research"
+--             , projectDirectory = "~/"
+--             , projectStartHook = Just $ do spawn myBrowser
+--                                            spawn myTerminal
+--             }
+--   ]
+  -- , Project { projectName      = "program"
+  --           , projectDirectory = "~/Documents/Programming/"
+  --           }
+  -- , Project { projectName      = "system"
+  --           , projectDirectory = "~/Documents/"
+  --           , projectStartHook = Just $ do spawn (myTerminal ++ "ncmpcpp")
+  --                                          spawn (myTerminal ++ "htop")
+  --           , projectStartHook = Just $ do spawn "discord"
+  --                                          spawn (myTerminal ++ "irssi")
+  --           }
+
+----------------------------------------------------------------------------}}}
 -- Tree Select: {{{
 --------------------------------------------------------------------------------
 -- tsAction :: TS.TSConfig (X ()) -> X ()
