@@ -1,15 +1,3 @@
+cabal: Failed to build X11-1.9.2 (which is required by exe:xmonad-config from
+xmonad-config-0.0). See the build log above for details.
 
-xmonad.hs:303:24: warning: [-Wdeprecations]
-    In the use of ‘spacing’ (imported from XMonad.Layout.Spacing):
-    Deprecated: "Use spacingRaw instead."
-    |
-303 |     mySpacing        = spacing gap
-    |                        ^^^^^^^
-
-xmonad.hs:494:18: warning: [-Wdeprecations]
-    In the use of ‘defaultGSConfig’
-    (imported from XMonad.Actions.GridSelect):
-    Deprecated: "Use def (from Data.Default, and re-exported from XMonad.Actions.GridSelect) instead."
-    |
-494 |     where conf = defaultGSConfig
-    |                  ^^^^^^^^^^^^^^^
