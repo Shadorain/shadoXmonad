@@ -310,7 +310,7 @@ myLayoutHook = fullScreenToggle
     monocle          = named "Monocle" $ avoidStruts(fullScreenToggle Full)
 
     spanFull         = named "Span Full"
-        $ avoidStruts
+        -- $ avoidStruts
         $ addOverline
         $ windowNavigation
         $ mySpacing
@@ -319,7 +319,7 @@ myLayoutHook = fullScreenToggle
         $ ThreeCol 1 (1/1000) (2/3)
 
     spanMid         = named "Span Mid"
-        $ avoidStruts
+        -- $ avoidStruts
         $ addOverline
         $ windowNavigation
         $ mySpacing
@@ -328,7 +328,7 @@ myLayoutHook = fullScreenToggle
         $ ThreeColMid 1 (1/1000) (2/3)
 
     masterTabbed     = named "Master Tabbed"
-        $ avoidStruts
+        -- $ avoidStruts
         $ addOverline
         $ mySpacing
         $ myGaps
@@ -336,7 +336,7 @@ myLayoutHook = fullScreenToggle
         $ tabbed shrinkText myTabTheme
 
     shadoLayout      = named "Shadolayout"
-        $ avoidStruts
+        -- $ avoidStruts
         $ windowNavigation
         $ addOverline
         $ addTabs shrinkText myTabTheme
@@ -409,11 +409,11 @@ myStartupHook = do
     spawn "killall picom; picom --experimental-backends &"
     spawn "/usr/bin/emacs --daemon &"
     spawn "killall polybar; polybar -c ~/.config/shadobar/config-xmonad shadobar" -- 2>~/.config/shadobar/log"
-    spawn "setsid ~/.config/shadobar/scripts/hideIt.sh --region 1920x0+1920+30 --peek -2 --name '^polybar-shadobar_DP-2$' &" -- Polybar hoverhider
     spawn "xset r rate 200 30"
     spawn "dbus-run-session --exit-with-session xmonad"
     -- spawn "sleep 1; killall stalonetray; stalonetray &"
     -- spawn "sleep 1; killall nm-applet; nm-applet &"
+    spawn "ps -ef | grep hideIt | grep -v grep | awk '{print $2}' | xargs kill; setsid /home/shadow/.config/shadobar/scripts/hideIt.sh --region 1920x0+1920+30 --peek -2 --name '^polybar-shadobar_DP-2$' &" -- Polybar hoverhider
     setDefaultCursor xC_left_ptr
 ----------------------------------------------------------------------------}}}
 -- Main: {{{
