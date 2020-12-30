@@ -404,26 +404,16 @@ fixFocus = ModifiedLayout $ FixFocus Nothing
 -- myStartupHook :: X ()
 myStartupHook = do
     setWMName "LG3D"
-    -- spawn "feh --bg-scale --no-fehbg $HOME/Pictures/Backgrounds/pretty.jpg &"
-    -- spawn "feh --bg-scale --no-fehbg $HOME/Pictures/Backgrounds/purps.png &"
-    -- spawn "feh --bg-scale --no-fehbg $HOME/Pictures/Backgrounds/winter-sun2.jpg &"
     spawn "feh --bg-scale --no-fehbg $HOME/Pictures/Backgrounds/forest.png &"
-    -- spawn "feh --bg-scale --no-fehbg $HOME/Pictures/Backgrounds/pixpurp.png &"
-    -- spawn "feh --bg-scale --no-fehbg $HOME/Pictures/Backgrounds/flower.png &"
-    -- spawn "feh --bg-scale --no-fehbg $HOME/Pictures/Backgrounds/ghosts3-2.jpg &"
-    -- spawn "/home/shadow/.gem/ruby/2.7.0/bin/fusuma &"
     spawn "flashfocus &"
     spawn "killall picom; picom --experimental-backends &"
     spawn "/usr/bin/emacs --daemon &"
-    -- spawn "killall xcape; xcape -t 200 -e 'Hyper_L=Tab;Hyper_R=backslash'" 
     spawn "killall polybar; polybar -c ~/.config/shadobar/config-xmonad shadobar" -- 2>~/.config/shadobar/log"
-    -- spawn "killall udiskie; udiskie -s -a -n &"
+    spawn "setsid ~/.config/shadobar/scripts/hideIt.sh --region 1920x0+1920+30 --peek -2 --name '^polybar-shadobar_DP-2$' &" -- Polybar hoverhider
     spawn "xset r rate 200 30"
-    -- spawn "pulseaudio --start"
     spawn "dbus-run-session --exit-with-session xmonad"
     -- spawn "sleep 1; killall stalonetray; stalonetray &"
     -- spawn "sleep 1; killall nm-applet; nm-applet &"
-    -- spawn "killall blueprox; blueprox & ; blueprox &"
     setDefaultCursor xC_left_ptr
 ----------------------------------------------------------------------------}}}
 -- Main: {{{
