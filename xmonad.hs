@@ -121,14 +121,14 @@ mySpacing       = 5 -- Set gaps between windows
 noSpacing       :: Int
 noSpacing       = 0 -- Set nogaps between windows
 -- myTerminal      = "kitty " -- Set default terminal
-myTerminal      = myJail ++ "st " -- Set default terminal
+myTerminal      = "st " -- Set default terminal
 myEditor        = "nvim" -- Set default text editor
 windowCount :: X (Maybe String)
 windowCount     = gets $ Just . show . length . W.integrate' . W.stack . W.workspace . W.current . windowset -- Get count of windows in selected workspace
 
     -- Dmenu
 -- myDmenuFlags     = " -fn 'Agave:size=12' -nb '#1B1B29' -nf '#8897F4' -sb '#2F2F4A' -sf '#ff79c6'" -- Color flags for dmenu
-myJail           = "firejail --seccomp --nonewprivs --private-tmp "
+myJail           = ""
 myLauncher       = myJail ++ "dmenu_run"-- Set main launcher
 myLauncherCalc   = myJail ++ "$HOME/.config/scripts/="-- Set main launcher
 myDmenuWebSearch = myJail ++ "$HOME/.config/scripts/dmenu_websearch" -- Dmenu web search prompt
@@ -717,7 +717,7 @@ myKeys conf@(XConfig {XMonad.modMask = modm}) = M.fromList $
     , ((mods,                       xK_k      ), spawn (myJail ++ "kdeconnect-sms --style 'kvantum'")                ) -- KDEConnect SMS
     , ((mods,                       xK_e      ), spawn (myJail ++ "emacsclient -c")                                  ) -- Emacsclient
     , ((mods .|. shiftMask,         xK_e      ), spawn (myJail ++ "emacs")                                           ) -- Emacs
-    , ((mods .|. controlMask,       xK_e      ), spawn (myJail ++ myTerminal ++ "emacs -nw"))                       ) -- Emacs NW
+    , ((mods .|. controlMask,       xK_e      ), spawn (myJail ++ myTerminal ++ "emacs -nw")                       ) -- Emacs NW
     , ((mods,                       xK_g      ), spawn (myJail ++ "ghidra")                                          ) -- Ghidra
         -- Screenshots -----------------------------------------------------------------------------------
     , ((shiftMask .|. controlMask,  xK_Print  ), spawn (myJail ++ "flameshot gui -p ~/Pictures/Screenshots")         ) -- Area
