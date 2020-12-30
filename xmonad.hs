@@ -128,13 +128,14 @@ windowCount     = gets $ Just . show . length . W.integrate' . W.stack . W.works
 
     -- Dmenu
 -- myDmenuFlags     = " -fn 'Agave:size=12' -nb '#1B1B29' -nf '#8897F4' -sb '#2F2F4A' -sf '#ff79c6'" -- Color flags for dmenu
-myLauncher       = "dmenu_run"-- Set main launcher
-myLauncherCalc   = "$HOME/.config/scripts/="-- Set main launcher
-myDmenuWebSearch = "$HOME/.config/scripts/dmenu_websearch" -- Dmenu web search prompt
-myDmenuTodo      = "$HOME/.config/scripts/shadotask" -- Dmenu todo prompt
+myJail           = "firejail --seccomp --nonewprivs --private-tmp "
+myLauncher       = myJail ++ "dmenu_run"-- Set main launcher
+myLauncherCalc   = myJail ++ "$HOME/.config/scripts/="-- Set main launcher
+myDmenuWebSearch = myJail ++ "$HOME/.config/scripts/dmenu_websearch" -- Dmenu web search prompt
+myDmenuTodo      = myJail ++ "$HOME/.config/scripts/shadotask" -- Dmenu todo prompt
 -- myDmenuTodo      = "$HOME/.config/scripts/todo" -- Dmenu todo prompt
-myDmenuClipMenu  = "clipmenu" -- Dmenu todo prompt
-myDmenuMPDMenu   = "$HOME/.config/scripts/mpdmenu" -- Dmenu todo prompt
+myDmenuClipMenu  = myJail ++ "clipmenu" -- Dmenu todo prompt
+myDmenuMPDMenu   = myJail ++ "$HOME/.config/scripts/mpdmenu" -- Dmenu todo prompt
 
     -- Borders
 myBorderWidth   = 0
@@ -622,30 +623,30 @@ myKeys conf@(XConfig {XMonad.modMask = modm}) = M.fromList $
     , ((modm,                   xK_q     ), spawn "xmonad --recompile; xmonad --restart") -- Restart
     , ((mods.|.controlMask,     xK_F12   ), spawn "~/.config/scripts/switch_gpu"        ) -- Switch GPU
     , ((modm,                   xK_F9    ), spawn "killall picom"                       ) -- Kill picom
-    , ((modm .|. shiftMask,     xK_F9    ), spawn "picom --experimental-backends &"     ) -- Start Picom
+    , ((modm .|. shiftMask,     xK_F9    ), spawn myJail ++ "picom --experimental-backends &"     ) -- Start Picom
     , ((modm .|. shiftMask,     xK_x     ), shiftToProjectPrompt shXPConfig             ) -- Project Prompt
    -- , ((modm .|. shiftMask,     xK_x     ), switchProjectPrompt shXPConfig              ) -- Project Prompt
         -- Session --------------------------------------------------------------------------------
     , ((modm .|. shiftMask,     xK_m     ), spawn "lwsm save"   ) -- Save Session
     , ((modm .|. controlMask,   xK_m     ), spawn "lwsm restore") -- Restore session
         -- Base -----------------------------------------------------------------------------------
-    , ((modm .|. shiftMask,     xK_Return), spawn $ XMonad.terminal conf                                                    ) -- Terminal
+    , ((modm .|. shiftMask,     xK_Return), spawn $ myJail ++ XMonad.terminal conf                                                    ) -- Terminal
     , ((modm,                   xK_p     ), spawn myLauncher                                                                ) -- Dmenu
     , ((modm .|. controlMask,   xK_p     ), spawn myLauncherCalc                                                            ) -- Calculator
     , ((modm,                   xK_b     ), sendMessage ToggleStruts >> spawn "polybar-msg cmd toggle"                      ) -- Toggle Bar
     , ((modm .|. shiftMask,     xK_b     ), sendMessage $ (MT.Toggle NOBORDERS)                                             ) -- Toggle Borders
     -- , ((modm .|. controlMask,   xK_n     ), spawn (myTerminal ++ "nmcli dev wifi connect GENEVASTUDENT")                    ) -- Restart net GENEVASTUDENT
-    , ((modm .|. controlMask,   xK_n     ), spawn (myTerminal ++ "nmcli dev wifi connect 'ionit 2.4'")                    ) -- Restart net
+    , ((modm .|. controlMask,   xK_n     ), spawn (myJail ++ myTerminal ++ "nmcli dev wifi connect 'ionit 2.4'")                    ) -- Restart net
     , ((modm,     xK_KP_Add     ), spawn "feh --bg-scale --no-fehbg $HOME/Pictures/Backgrounds/pretty.jpg &"                ) -- Set Lofi Background
     , ((modm,     xK_KP_Subtract), spawn "feh --bg-scale --no-fehbg $HOME/Pictures/Backgrounds/forest.png &"                ) -- Set Forest Background
     , ((mods,                   xK_d     ), spawn dateScript                                                                ) -- Display date
     , ((modm,                   xK_o     ), spawn bigO                                                                      ) -- BigOcheatsheet
-    -- , ((modm,                   xK_F7    ), spawn "~/.screenlayout/scs.sh; xmonad --restart"                                                  ) -- Fix Screens
+    , ((modm,                   xK_F7    ), spawn "~/.screenlayout/scs.sh; xmonad --restart"                                                  ) -- Fix Screens
     -- , ((modm,                   xK_F7    ), spawn "~/.screenlayout/home.sh; xmonad --restart"                                                  ) -- Fix Screens
-    , ((modm,                   xK_F7    ), spawn "~/.screenlayout/triple.sh; xmonad --restart"                                                  ) -- Fix Screens
+    -- , ((modm,                   xK_F7    ), spawn "~/.screenlayout/triple.sh; xmonad --restart"                                                  ) -- Fix Screens
     , ((modm .|. controlMask,   xK_b     ), spawn "killall polybar; polybar -c ~/.config/shadobar/config-xmonad shadobar"   ) -- Restart polybar
     -- , ((mods,                   xK_p     ), spawn "betterlockscreen -l blur -r 1920x1080 -b 0.2 -t 'Welcome back, Shado...'") -- Lock Screen
-    , ((mods,                   xK_p     ), spawn "betterlockscreen -l -r 1920x1080 -t 'Welcome back, Shado...'") -- Lock Screen
+    , ((mods,                   xK_p     ), spawn myJail ++ "betterlockscreen -l -r 1920x1080 -t 'Welcome back, Shado...'") -- Lock Screen
         -- Layouts --------------------------------------------------------------------------------
     , ((modm,                   xK_t     ), withFocused $ windows . W.sink              ) -- Push win into tiling
     , ((modm .|. shiftMask,     xK_t     ), sendMessage $ Toggle MIRROR                 ) -- Toggles Mirror Layout mode
@@ -720,21 +721,21 @@ myKeys conf@(XConfig {XMonad.modMask = modm}) = M.fromList $
     , ((modm .|. shiftMask,         xK_y      ), spawn "ytdl"                                            ) -- Yt->Mpv script
         -- Open Applications -----------------------------------------------------------------------------
     , ((modm,                       xK_KP_Multiply), spawn "wall-d ~/Pictures/Backgrounds"               ) -- Wall-d
-    , ((mods,                       xK_b      ), spawn myBrowser                                         ) -- Browser
-    , ((mods .|. controlMask,       xK_m      ), spawn (myTerminal ++ "calcurse")                        ) -- Calcurse
-    , ((mods .|. shiftMask,         xK_d      ), spawn "Discord"                                         ) -- Discord
+    , ((mods,                       xK_b      ), spawn myJail ++ myBrowser                                         ) -- Browser
+    , ((mods .|. controlMask,       xK_m      ), spawn myJail ++ (myTerminal ++ "calcurse")                        ) -- Calcurse
+    , ((mods .|. shiftMask,         xK_d      ), spawn myJail ++ "Discord"                                         ) -- Discord
     , ((mods .|. controlMask,       xK_d      ), spawn "killall Discord"                                 ) -- Kill Discord
-    , ((mods,                       xK_k      ), spawn "kdeconnect-sms --style 'kvantum'"                ) -- KDEConnect SMS
+    , ((mods,                       xK_k      ), spawn myJail ++ "kdeconnect-sms --style 'kvantum'"                ) -- KDEConnect SMS
     -- , ((mods .|. shiftMask,         xK_v      ), spawn (myTerminal ++ myFilemngr)                        ) -- File Manager
     -- , ((mods .|. shiftMask,         xK_a      ), spawn (myTerminal ++ "pulsemixer")                      ) -- Mixer
     -- , ((mods .|. shiftMask,         xK_m      ), spawn (myTerminal ++ "ncmpcpp")                         ) -- Ncmpcpp
     -- , ((mods .|. shiftMask,         xK_w      ), spawn (myTerminal ++ "nmtui")                           ) -- Netork
     -- , ((mods .|. shiftMask,         xK_h      ), spawn (myTerminal ++ "htop")                            ) -- Processes
     -- , ((mods .|. shiftMask,         xK_s      ), spawn "~/.config/rofi/scripts/menu_powermenu.sh"        ) -- Powermenu
-    , ((mods,                       xK_e      ), spawn "emacsclient -c"                                  ) -- Emacsclient
-    , ((mods .|. shiftMask,         xK_e      ), spawn "emacs"                                           ) -- Emacs
-    , ((mods .|. controlMask,       xK_e      ), spawn (myTerminal ++ "emacs -nw")                       ) -- Emacs NW
-    , ((mods,                       xK_g      ), spawn "ghidra"                                          ) -- Ghidra
+    , ((mods,                       xK_e      ), spawn myJail ++ "emacsclient -c"                                  ) -- Emacsclient
+    , ((mods .|. shiftMask,         xK_e      ), spawn myJail ++ "emacs"                                           ) -- Emacs
+    , ((mods .|. controlMask,       xK_e      ), spawn myJail ++ (myTerminal ++ "emacs -nw")                       ) -- Emacs NW
+    , ((mods,                       xK_g      ), spawn myJail ++ "ghidra"                                          ) -- Ghidra
         -- Screenshots -----------------------------------------------------------------------------------
     , ((shiftMask .|. controlMask,  xK_Print  ), spawn "flameshot gui -p ~/Pictures/Screenshots"         ) -- Area
     , ((0,                          xK_Print  ), spawn "scrot '~/Pictures/Screenshots/%F_%T.png'"        ) -- Fullscreen
