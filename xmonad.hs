@@ -335,7 +335,7 @@ myLayoutHook = fullScreenToggle
         $ tabbed shrinkText myTabTheme
 
     shadoLayout      = named "Shadolayout"
-        -- $ avoidStruts
+        $ avoidStruts
         $ windowNavigation
         $ addOverline
         $ addTabs shrinkText myTabTheme
@@ -408,7 +408,7 @@ myStartupHook = do
     spawn "killall picom; picom --experimental-backends &"
     spawn "/usr/bin/emacs --daemon &"
     spawn "killall polybar; polybar -c ~/.config/shadobar/config-xmonad shadobar" -- 2>~/.config/shadobar/log"
-    spawn "ps -ef | grep hideIt | grep -v grep | awk '{print $2}' | xargs kill; setsid /home/shadow/.config/shadobar/scripts/hideIt.sh --region 1920x0+1920+30 --peek -2 --name '^polybar-shadobar_DP-2$' &" -- Polybar hoverhider
+    -- spawn "ps -ef | grep hideIt | grep -v grep | awk '{print $2}' | xargs kill; setsid /home/shadow/.config/shadobar/scripts/hideIt.sh --region 1920x0+1920+30 --peek -2 --name '^polybar-shadobar_DP-2$' &" -- Polybar hoverhider
     spawn "xset r rate 200 30"
     spawn "dbus-run-session --exit-with-session xmonad"
     -- spawn "sleep 1; killall stalonetray; stalonetray &"
@@ -710,6 +710,7 @@ myKeys conf@(XConfig {XMonad.modMask = modm}) = M.fromList $
     -- , ((modm .|. shiftMask,         xK_y      ), spawn "ytdl"                                            ) -- Yt->Mpv script
         -- Open Applications -----------------------------------------------------------------------------
     , ((modm,                       xK_KP_Multiply), spawn "wall-d ~/Pictures/Backgrounds"               ) -- Wall-d
+    , ((mods .|. shiftMask,         xK_s      ), spawn "powermenu"                                         ) -- Powermenu
     , ((mods,                       xK_b      ), spawn (myJail ++ myBrowser)                                         ) -- Browser
     , ((mods .|. controlMask,       xK_m      ), spawn (myJail ++ myTerminal ++ "calcurse")                        ) -- Calcurse
     , ((mods .|. shiftMask,         xK_d      ), spawn (myJail ++ "Discord")                                         ) -- Discord
@@ -733,6 +734,7 @@ myKeys conf@(XConfig {XMonad.modMask = modm}) = M.fromList $
     , ((modm .|. shiftMask,        xK_slash   ), SM.submap $ searchEngineMap $ S.selectSearch            ) -- Searches via clipboard
         -- Prompts ---------------------------------------------------------------------------------------
     , ((modm,                      xK_m       ), spawn myDmenuMPDMenu                                          ) -- MPD Menu
+    , ((modm .|. shiftMask,        xK_m       ), spawn "~/.config/scripts/histsearch") -- Command history search
     , ((mods,                      xK_x       ), SM.submap $ promptMap                                   ) -- Prompts submap
     ]
     ++
