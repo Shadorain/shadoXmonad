@@ -195,6 +195,7 @@ myConfig = def {
                         <+> minimizeEventHook,
                         -- <+> fullscreenEventHook,
     startupHook        = myStartupHook
+                         <+> docksStartupHook
 }
                         -- <+> (scratchpadManageHook $ W.RationalRect 0 0 1 (3/4))
 -----------------------------------------------------------------------------}}}
@@ -327,7 +328,7 @@ myLayoutHook = fullScreenToggle
         $ ThreeColMid 1 (1/1000) (2/3)
 
     masterTabbed     = named "Master Tabbed"
-        -- $ avoidStruts
+        $ avoidStruts
         $ addOverline
         $ mySpacing
         $ myGaps
@@ -335,7 +336,7 @@ myLayoutHook = fullScreenToggle
         $ tabbed shrinkText myTabTheme
 
     shadoLayout      = named "Shadolayout"
-        -- $ avoidStruts
+        $ avoidStruts
         $ windowNavigation
         $ addOverline
         $ addTabs shrinkText myTabTheme
@@ -355,7 +356,7 @@ myManageHook = (composeAll . concat $
     [[ className =? "lutris"                  --> doFloat ]
     ,[ className =? "wall-d"                  --> doFloat ]
     -- ,[ className =? "Sxiv"                    --> doFloat ]
-    ,[ title =? "QEMU"                    --> doFloat ]
+    ,[ title =? "QEMU"                        --> doFloat ]
     ,[ resource  =? "desktop_window"          --> doIgnore ] ])
         -- where
         --     role = stringProperty "WM_WINDOW_ROLE"
@@ -404,11 +405,12 @@ fixFocus = ModifiedLayout $ FixFocus Nothing
 myStartupHook = do
     setWMName "LG3D"
     spawn "feh --bg-scale --no-fehbg $HOME/Pictures/Backgrounds/forest.png &"
+    -- spawn "feh --bg-scale --no-fehbg $HOME/Pictures/Backgrounds/chihiro.jpg &"
     spawn "flashfocus &"
     spawn "killall picom; picom --experimental-backends &"
     spawn "/usr/bin/emacs --daemon &"
-    spawn "killall polybar; polybar -c ~/.config/shadobar/config-xmonad shadobar" -- 2>~/.config/shadobar/log"
-    spawn "ps -ef | grep hideIt | grep -v grep | awk '{print $2}' | xargs kill; setsid /home/shadow/.config/shadobar/scripts/hideIt.sh --region 1920x0+1920+30 --peek -2 --name '^polybar-shadobar_DP-2$' &" -- Polybar hoverhider
+    spawn "killall polybar ; polybar -c ~/.config/shadobar/config-xmonad shadobar &" -- 2>~/.config/shadobar/log"
+    spawn "ps -ef | grep hideIt | grep -v grep | awk '{print $2}' | xargs kill"
     spawn "xset r rate 200 30"
     spawn "dbus-run-session --exit-with-session xmonad"
     -- spawn "sleep 1; killall stalonetray; stalonetray &"
@@ -422,7 +424,7 @@ main = do
     nScreens <- countScreens -- Gets current screen count
 
     xmonad 
-        $ fullscreenSupport
+        -- $ fullscreenSupport
         $ withNavigation2DConfig myNav2DConf
         $ withUrgencyHook NoUrgencyHook 
         -- $ dynamicProjects projects
@@ -568,6 +570,7 @@ shXPKeymap = M.fromList $
 -------------------------------------------------------------------------------
 myScratchPads :: [NamedScratchpad]
 myScratchPads = [ NS "terminal" spawnTerm findTerm manageTerm
+                , NS "miniterm" spawnMiniTerm findMiniTerm manageMiniTerm
                 , NS "ncmpcpp" spawnNcmpcpp findNcmpcpp manageNcmpcpp
                 , NS "nvim" spawnNvim findNvim manageNvim ]
     where
@@ -579,6 +582,14 @@ myScratchPads = [ NS "terminal" spawnTerm findTerm manageTerm
                        y = 0.2
                        w = 0.6
                        h = 0.6
+        spawnMiniTerm  = myTerminal ++ " -n mini_scratch sox -t pulseaudio default ~/Videos/Recordings/`date +%d-%m-%Y_%H-%M-%S`_recording.wav"
+        findMiniTerm   = resource =? "mini_scratch"
+        manageMiniTerm = customFloating $ W.RationalRect x y w h
+                       where
+                       x = 0.4
+                       y = 0.4
+                       w = 0.2
+                       h = 0.2
         spawnNcmpcpp  = myTerminal ++ " -n 'ncmpcpp_scratch' '/home/shadow/.ncmpcpp/ncmpcpp-ueberzug/ncmpcpp-ueberzug'"
         findNcmpcpp   = resource =? "ncmpcpp_scratch"
         manageNcmpcpp = customFloating $ W.RationalRect x y w h
@@ -623,19 +634,21 @@ myKeys conf@(XConfig {XMonad.modMask = modm}) = M.fromList $
     , ((modm,                   xK_p     ), spawn myLauncher                                                                ) -- Dmenu
     , ((modm .|. controlMask,   xK_p     ), spawn myLauncherCalc                                                            ) -- Calculator
     , ((modm,                   xK_b     ), sendMessage ToggleStruts >> spawn "polybar-msg cmd toggle"                      ) -- Toggle Bar
-    , ((modm .|. shiftMask,     xK_b     ), sendMessage $ (MT.Toggle NOBORDERS)                                             ) -- Toggle Borders
-    -- , ((modm .|. controlMask,   xK_n     ), spawn (myTerminal ++ "nmcli dev wifi connect GENEVASTUDENT")                    ) -- Restart net GENEVASTUDENT
-    , ((modm .|. controlMask,   xK_n     ), spawn (myJail ++ myTerminal ++ "nmcli dev wifi connect 'ionit 2.4'")                    ) -- Restart net
+    , ((modm .|. shiftMask,     xK_b     ), spawn "killall polybar")
+    , ((modm .|. controlMask,   xK_b     ), spawn "killall polybar; polybar -c ~/.config/shadobar/config-xmonad shadobar"   ) -- Restart polybar
+    -- , ((modm .|. shiftMask,     xK_b     ), spawn "polyhide")
+    -- , ((modm .|. shiftMask,     xK_b     ), sendMessage $ (MT.Toggle NOBORDERS)                                             ) -- Toggle Borders
+    , ((modm .|. controlMask,   xK_n     ), spawn (myTerminal ++ "nmcli dev wifi connect GENEVASTUDENT")                    ) -- Restart net GENEVASTUDENT
+    -- , ((modm .|. controlMask,   xK_n     ), spawn (myJail ++ myTerminal ++ "nmcli dev wifi connect 'ionit 2.4'")            ) -- Restart net
     , ((modm,     xK_KP_Add     ), spawn "feh --bg-scale --no-fehbg $HOME/Pictures/Backgrounds/pretty.jpg &"                ) -- Set Lofi Background
     , ((modm,     xK_KP_Subtract), spawn "feh --bg-scale --no-fehbg $HOME/Pictures/Backgrounds/forest.png &"                ) -- Set Forest Background
-    , ((mods,                   xK_d     ), spawn (myJail ++ dateScript)                                                                ) -- Display date
+    , ((mods,                   xK_d     ), spawn (myJail ++ dateScript)                                                    ) -- Display date
     , ((modm,                   xK_o     ), spawn bigO                                                                      ) -- BigOcheatsheet
-    -- , ((modm,                   xK_F7    ), spawn "~/.screenlayout/scs.sh; xmonad --restart"                                                  ) -- Fix Screens
-    -- , ((modm,                   xK_F7    ), spawn "~/.screenlayout/home.sh; xmonad --restart"                                                  ) -- Fix Screens
-    , ((modm,                   xK_F7    ), spawn "~/.screenlayout/triple.sh; xmonad --restart"                                                  ) -- Fix Screens
-    , ((modm .|. controlMask,   xK_b     ), spawn "killall polybar; polybar -c ~/.config/shadobar/config-xmonad shadobar"   ) -- Restart polybar
+    , ((modm,                   xK_F7    ), spawn "~/.screenlayout/scs.sh; xmonad --restart"                                ) -- Fix Screens
+    -- , ((modm,                   xK_F7    ), spawn "~/.screenlayout/home.sh; xmonad --restart"                               ) -- Fix Screens
+    -- , ((modm,                   xK_F7    ), spawn "~/.screenlayout/triple.sh; xmonad --restart"                             ) -- Fix Screens
     -- , ((mods,                   xK_p     ), spawn "betterlockscreen -l blur -r 1920x1080 -b 0.2 -t 'Welcome back, Shado...'") -- Lock Screen
-    , ((mods,                   xK_p     ), spawn (myJail ++ "betterlockscreen -l -r 1920x1080 -t 'Welcome back, Shado...'")) -- Lock Screen
+    , ((mods,                   xK_p     ), spawn "betterlockscreen -l -r 1920x1080 -t 'Welcome back, Shado...'") -- Lock Screen
         -- Layouts --------------------------------------------------------------------------------
     , ((modm,                   xK_t     ), withFocused $ windows . W.sink              ) -- Push win into tiling
     , ((modm .|. shiftMask,     xK_t     ), sendMessage $ Toggle MIRROR                 ) -- Toggles Mirror Layout mode
@@ -699,28 +712,33 @@ myKeys conf@(XConfig {XMonad.modMask = modm}) = M.fromList $
     , ((0,                          0x1008FF11), spawn "pulsemixer --change-volume -2"                   ) -- Volume Down 
     , ((0,                          0x1008FF13), spawn "pulsemixer --change-volume +2"                   ) -- Volume Up
     , ((0,                          0x1008FF12), spawn "pulsemixer --toggle-mute"                        ) -- Mute
-    , ((0,                          0x1008FF14), spawn "mpc --host=localhost --port=6601 toggle"                                      ) -- Play/Pause
-    , ((modm,                       0x1008FF15), spawn "mpc --host=localhost --port=6601 shuffle"                                     ) -- Shuffle
-    , ((0,                          0x1008FF16), spawn "mpc --host=localhost --port=6601 prev"                                        ) -- Prev Track
-    , ((0,                          0x1008FF17), spawn "mpc --host=localhost --port=6601 next"                                        ) -- Next Track
+    , ((0,                          0x1008FF14), spawn "mpc --host=localhost --port=6601 toggle"         ) -- Play/Pause
+    , ((modm,                       0x1008FF15), spawn "mpc --host=localhost --port=6601 shuffle"        ) -- Shuffle
+    , ((0,                          0x1008FF16), spawn "mpc --host=localhost --port=6601 prev"           ) -- Prev Track
+    , ((0,                          0x1008FF17), spawn "mpc --host=localhost --port=6601 next"           ) -- Next Track
         -- Brightness
     , ((0,                          0x1008FF02), spawn "xbacklight -inc 2"                               ) -- Inc Brightness
     , ((0,                          0x1008FF03), spawn "xbacklight -dec 2"                               ) -- Dec Brightness
         -- Youtube Download ------------------------------------------------------------------------------
     -- , ((modm .|. shiftMask,         xK_y      ), spawn "ytdl"                                            ) -- Yt->Mpv script
+        -- Tomb ------------------------------------------------------------------------------------------
+    , ((mods,                       xK_t), spawn (myTerminal ++ "tomb open ~/dev/data -k ~/dev/.non -f") ) -- Open tomb
+    , ((mods .|. shiftMask,         xK_t), spawn (myTerminal ++ "sudo tomb close")                       ) -- Close tomb
+    , ((mods .|. controlMask,       xK_t), spawn (myTerminal ++ "sudo tomb slam")                        ) -- Tomb Slam!
         -- Open Applications -----------------------------------------------------------------------------
     , ((modm,                       xK_KP_Multiply), spawn "wall-d ~/Pictures/Backgrounds"               ) -- Wall-d
-    , ((mods,                       xK_b      ), spawn (myJail ++ myBrowser)                                         ) -- Browser
-    , ((mods .|. controlMask,       xK_m      ), spawn (myJail ++ myTerminal ++ "calcurse")                        ) -- Calcurse
-    , ((mods .|. shiftMask,         xK_d      ), spawn (myJail ++ "Discord")                                         ) -- Discord
+    , ((mods .|. shiftMask,         xK_s      ), spawn "powermenu"                                       ) -- Powermenu
+    , ((mods,                       xK_b      ), spawn (myJail ++ myBrowser)                             ) -- Browser
+    , ((mods .|. controlMask,       xK_m      ), spawn (myJail ++ myTerminal ++ "calcurse")              ) -- Calcurse
+    , ((mods .|. shiftMask,         xK_d      ), spawn (myJail ++ "Discord")                             ) -- Discord
     , ((mods .|. controlMask,       xK_d      ), spawn "killall Discord"                                 ) -- Kill Discord
-    , ((mods,                       xK_k      ), spawn (myJail ++ "kdeconnect-sms --style 'kvantum'")                ) -- KDEConnect SMS
-    , ((mods,                       xK_e      ), spawn (myJail ++ "emacsclient -c")                                  ) -- Emacsclient
-    , ((mods .|. shiftMask,         xK_e      ), spawn (myJail ++ "emacs")                                           ) -- Emacs
-    , ((mods .|. controlMask,       xK_e      ), spawn (myJail ++ myTerminal ++ "emacs -nw")                       ) -- Emacs NW
-    , ((mods,                       xK_g      ), spawn (myJail ++ "ghidra")                                          ) -- Ghidra
+    , ((mods,                       xK_k      ), spawn (myJail ++ "kdeconnect-sms --style 'kvantum'")    ) -- KDEConnect SMS
+    , ((mods,                       xK_e      ), spawn (myJail ++ "emacsclient -c")                      ) -- Emacsclient
+    , ((mods .|. shiftMask,         xK_e      ), spawn (myJail ++ "emacs")                               ) -- Emacs
+    , ((mods .|. controlMask,       xK_e      ), spawn (myJail ++ myTerminal ++ "emacs -nw")             ) -- Emacs NW
+    , ((mods,                       xK_g      ), spawn (myJail ++ "ghidra")                              ) -- Ghidra
         -- Screenshots -----------------------------------------------------------------------------------
-    , ((shiftMask .|. controlMask,  xK_Print  ), spawn (myJail ++ "flameshot gui -p ~/Pictures/Screenshots")         ) -- Area
+    , ((shiftMask .|. controlMask,  xK_Print  ), spawn (myJail ++ "flameshot gui -p ~/Pictures/Screenshots")) -- Area
     , ((0,                          xK_Print  ), spawn "scrot '~/Pictures/Screenshots/%F_%T.png'"        ) -- Fullscreen
     , ((mods .|. modm,              xK_Print  ), spawn "flameshot screen -r -c -p ~/Pictures/Screenshots") -- Monitor
     , ((controlMask,                xK_Print  ), spawn "scrot -u '~/Pictures/Screenshots'"               ) -- Window
@@ -731,8 +749,12 @@ myKeys conf@(XConfig {XMonad.modMask = modm}) = M.fromList $
         -- Search Engine ---------------------------------------------------------------------------------
     , ((modm,                      xK_slash   ), SM.submap $ searchEngineMap $ S.promptSearch shXPConfig') -- Searches via prompt
     , ((modm .|. shiftMask,        xK_slash   ), SM.submap $ searchEngineMap $ S.selectSearch            ) -- Searches via clipboard
+        -- Record Button -----------------------------------------------------------------------------------
+    , ((mods,                      xK_r), namedScratchpadAction myScratchPads "miniterm"                 ) -- Ncmpcpp Scrtchpd
         -- Prompts ---------------------------------------------------------------------------------------
-    , ((modm,                      xK_m       ), spawn myDmenuMPDMenu                                          ) -- MPD Menu
+    , ((mods,                      xK_v       ), spawn "VBoxManage startvm Wraith_Arch"                  ) -- Open Black_Arch VM
+    , ((modm .|. shiftMask,        xK_m       ), spawn "~/.config/scripts/histsearch"                    ) -- Command history search
+    , ((modm,                      xK_m       ), spawn myDmenuMPDMenu                                    ) -- MPD Menu
     , ((mods,                      xK_x       ), SM.submap $ promptMap                                   ) -- Prompts submap
     ]
     ++
