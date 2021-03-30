@@ -404,13 +404,16 @@ fixFocus = ModifiedLayout $ FixFocus Nothing
 -- myStartupHook :: X ()
 myStartupHook = do
     setWMName "LG3D"
+    -- spawn "feh --bg-scale --no-fehbg $HOME/Pictures/Backgrounds/fantasy.png &"
     spawn "feh --bg-scale --no-fehbg $HOME/Pictures/Backgrounds/forest.png &"
     -- spawn "feh --bg-scale --no-fehbg $HOME/Pictures/Backgrounds/chihiro.jpg &"
-    spawn "flashfocus &"
+    -- spawn "feh --bg-scale --no-fehbg $HOME/Pictures/Backgrounds/lines.png &"
+    spawn "mpd_discord_richpresence -h=localhost -p=6601 --fork"
+    -- spawn "flashfocus &"
     spawn "killall picom; picom --experimental-backends &"
     spawn "/usr/bin/emacs --daemon &"
     spawn "killall polybar ; polybar -c ~/.config/shadobar/config-xmonad shadobar &" -- 2>~/.config/shadobar/log"
-    spawn "ps -ef | grep hideIt | grep -v grep | awk '{print $2}' | xargs kill"
+    -- spawn "ps -ef | grep hideIt | grep -v grep | awk '{print $2}' | xargs kill"
     spawn "xset r rate 200 30"
     spawn "dbus-run-session --exit-with-session xmonad"
     -- spawn "sleep 1; killall stalonetray; stalonetray &"
@@ -582,7 +585,7 @@ myScratchPads = [ NS "terminal" spawnTerm findTerm manageTerm
                        y = 0.2
                        w = 0.6
                        h = 0.6
-        spawnMiniTerm  = myTerminal ++ " -n mini_scratch sox -t pulseaudio default ~/Videos/Recordings/`date +%d-%m-%Y_%H-%M-%S`_recording.wav"
+        spawnMiniTerm  = myTerminal ++ " -n mini_scratch sox -t pulseaudio default ~/Videos/Recordings/`date +%d-%m-%Y_%H-%M-%S`_recording.mp3"
         findMiniTerm   = resource =? "mini_scratch"
         manageMiniTerm = customFloating $ W.RationalRect x y w h
                        where
@@ -712,6 +715,7 @@ myKeys conf@(XConfig {XMonad.modMask = modm}) = M.fromList $
     , ((0,                          0x1008FF11), spawn "pulsemixer --change-volume -2"                   ) -- Volume Down 
     , ((0,                          0x1008FF13), spawn "pulsemixer --change-volume +2"                   ) -- Volume Up
     , ((0,                          0x1008FF12), spawn "pulsemixer --toggle-mute"                        ) -- Mute
+    , ((0,                          0x1008ffb2), spawn "amixer set Capture toggle"                       ) -- Mute MIC
     , ((0,                          0x1008FF14), spawn "mpc --host=localhost --port=6601 toggle"         ) -- Play/Pause
     , ((modm,                       0x1008FF15), spawn "mpc --host=localhost --port=6601 shuffle"        ) -- Shuffle
     , ((0,                          0x1008FF16), spawn "mpc --host=localhost --port=6601 prev"           ) -- Prev Track
@@ -730,8 +734,9 @@ myKeys conf@(XConfig {XMonad.modMask = modm}) = M.fromList $
     , ((mods .|. shiftMask,         xK_s      ), spawn "powermenu"                                       ) -- Powermenu
     , ((mods,                       xK_b      ), spawn (myJail ++ myBrowser)                             ) -- Browser
     , ((mods .|. controlMask,       xK_m      ), spawn (myJail ++ myTerminal ++ "calcurse")              ) -- Calcurse
-    , ((mods .|. shiftMask,         xK_d      ), spawn (myJail ++ "Discord")                             ) -- Discord
-    , ((mods .|. controlMask,       xK_d      ), spawn "killall Discord"                                 ) -- Kill Discord
+    -- , ((mods .|. shiftMask,         xK_d      ), spawn (myJail ++ "Discord")                             ) -- Discord
+    , ((mods .|. shiftMask,         xK_d      ), spawn (myJail ++ "Discord --no-sandbox")                ) -- Discord
+    , ((mods .|. controlMask,       xK_d      ), spawn "killall DiscordPTB"                              ) -- Kill Discord
     , ((mods,                       xK_k      ), spawn (myJail ++ "kdeconnect-sms --style 'kvantum'")    ) -- KDEConnect SMS
     , ((mods,                       xK_e      ), spawn (myJail ++ "emacsclient -c")                      ) -- Emacsclient
     , ((mods .|. shiftMask,         xK_e      ), spawn (myJail ++ "emacs")                               ) -- Emacs
