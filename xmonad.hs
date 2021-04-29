@@ -281,7 +281,7 @@ myLayoutHook = fullScreenToggle
              $ hiddenWindows
              $ windowArrange
              -- $ fixFocus
-             $ shadoLayout ||| fixFocus spanFull ||| fixFocus spanMid ||| monocle ||| tiled
+             $ shadoLayout -- ||| fixFocus spanFull ||| fixFocus spanMid ||| monocle ||| tiled
 
   where
     fullScreenToggle = mkToggle (single FULL)
@@ -404,8 +404,8 @@ fixFocus = ModifiedLayout $ FixFocus Nothing
 -- myStartupHook :: X ()
 myStartupHook = do
     setWMName "LG3D"
-    -- spawn "feh --bg-scale --no-fehbg $HOME/Pictures/Backgrounds/fantasy.png &"
-    spawn "feh --bg-scale --no-fehbg $HOME/Pictures/Backgrounds/forest.png &"
+    spawn "feh --bg-scale --no-fehbg $HOME/Pictures/Backgrounds/fantasy.png &"
+    -- spawn "feh --bg-scale --no-fehbg $HOME/Pictures/Backgrounds/forest.png &"
     -- spawn "feh --bg-scale --no-fehbg $HOME/Pictures/Backgrounds/chihiro.jpg &"
     -- spawn "feh --bg-scale --no-fehbg $HOME/Pictures/Backgrounds/lines.png &"
     spawn "mpd_discord_richpresence -h=localhost -p=6601 --fork"
@@ -761,6 +761,9 @@ myKeys conf@(XConfig {XMonad.modMask = modm}) = M.fromList $
     , ((modm .|. shiftMask,        xK_m       ), spawn "~/.config/scripts/histsearch"                    ) -- Command history search
     , ((modm,                      xK_m       ), spawn myDmenuMPDMenu                                    ) -- MPD Menu
     , ((mods,                      xK_x       ), SM.submap $ promptMap                                   ) -- Prompts submap
+        -- change gap bug ---------------------------------------------------------------------------------------
+    -- , ((mods,                      xK_equal  ), sendMessage $ IncGap 5 R) -- Prompts submap
+    -- , ((mods,                      xK_minus   ), sendMessage $ setGaps [(U,gap), (R,gap)]) -- Prompts submap
     ]
     ++
     [((m .|. modm, k), windows $ onCurrentScreen f i)
