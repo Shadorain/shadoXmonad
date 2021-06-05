@@ -115,7 +115,8 @@ import XMonad.Util.NamedScratchpad
     -- Base
 myBrowser       = "firefox " -- Set default browser
 myFilemngr      = "vifmrun" -- Set default file manager
-myFont          = "xft:Agave:pixelsize=14" -- Set font
+myFont          = "xft:Jura:pixelsize=14" -- Set font
+minimalFont     = "xft:Jura:pixelsize=1" -- Set font
 mySpacing       :: Int
 mySpacing       = 5 -- Set gaps between windows
 noSpacing       :: Int
@@ -245,13 +246,14 @@ overLineTheme = def
     }
 
 myTabTheme = def 
-    { fontName            = myFont 
+    { fontName            = minimalFont 
     , activeColor         = active
     , inactiveColor       = inactive
     , activeBorderColor   = active
     , inactiveBorderColor = cViolet
     , activeTextColor     = active
     , inactiveTextColor   = inactive
+    , decoHeight          = 12
     }
 
 ----------------------------------------------------------------------------}}}
@@ -344,11 +346,11 @@ myLayoutHook = fullScreenToggle
         $ ifWider 5760 wideLayouts stdLayouts
         where
             stdLayouts = myGaps $ mySpacing
-                $ (suffixed "T2 |" $ ResizableTall 1 (1/100) (1/2) []) |||
-                  (suffixed "BSP |" $ emptyBSP)
+                $ (suffixed "T2" $ ResizableTall 1 (1/100) (1/2) []) |||
+                  (suffixed "BSP" $ emptyBSP)
             wideLayouts = myGaps $ mySpacing
-                $ (suffixed "W 3C |" $ ThreeColMid 1 (1/20) (1/2)) |||
-                  (trimSuffixed 1 "W BSP |" $ hiddenWindows emptyBSP)
+                $ (suffixed "W 3C" $ ThreeColMid 1 (1/20) (1/2)) |||
+                  (trimSuffixed 1 "W BSP" $ hiddenWindows emptyBSP)
 ----------------------------------------------------------------------------}}}
 -- Window rules: {{{
 -------------------------------------------------------------------------------
@@ -405,6 +407,7 @@ fixFocus = ModifiedLayout $ FixFocus Nothing
 myStartupHook = do
     setWMName "LG3D"
     spawn "feh --bg-scale --no-fehbg $HOME/Pictures/Backgrounds/fantasy.png &"
+    spawn "libinput-gestures-setup start"
     -- spawn "feh --bg-scale --no-fehbg $HOME/Pictures/Backgrounds/forest.png &"
     -- spawn "feh --bg-scale --no-fehbg $HOME/Pictures/Backgrounds/chihiro.jpg &"
     -- spawn "feh --bg-scale --no-fehbg $HOME/Pictures/Backgrounds/lines.png &"
@@ -627,8 +630,8 @@ myKeys conf@(XConfig {XMonad.modMask = modm}) = M.fromList $
     , ((mods.|.controlMask,     xK_F12   ), spawn "~/.config/scripts/switch_gpu"        ) -- Switch GPU
     , ((modm,                   xK_F9    ), spawn "killall picom"                       ) -- Kill picom
     , ((modm .|. shiftMask,     xK_F9    ), spawn (myJail ++"picom --experimental-backends &")     ) -- Start Picom
-    , ((modm .|. shiftMask,     xK_x     ), shiftToProjectPrompt shXPConfig             ) -- Project Prompt
-   -- , ((modm .|. shiftMask,     xK_x     ), switchProjectPrompt shXPConfig              ) -- Project Prompt
+    -- , ((modm .|. shiftMask,     xK_x     ), shiftToProjectPrompt shXPConfig             ) -- Project Prompt
+    -- , ((modm .|. shiftMask,     xK_x     ), switchProjectPrompt shXPConfig              ) -- Project Prompt
         -- Session --------------------------------------------------------------------------------
     -- , ((modm .|. shiftMask,     xK_m     ), spawn "lwsm save"   ) -- Save Session
     -- , ((modm .|. controlMask,   xK_m     ), spawn "lwsm restore") -- Restore session
@@ -665,8 +668,8 @@ myKeys conf@(XConfig {XMonad.modMask = modm}) = M.fromList $
     , ((modm .|. controlMask,   xK_Right ), nextWS                                      ) -- Cycle Right
     , ((modm .|. controlMask,   xK_Left  ), prevWS                                      ) -- Cycle Left
         -- Tabs -----------------------------------------------------------------------------------
-    -- , ((modm,                   xK_semicolon ), CK.bindOn CK.LD [("M Tab", windows W.focusUp),  ("", onGroup W.focusUp')]  ) -- Focus next tab up
-    -- , ((modm,                   xK_apostrophe), CK.bindOn CK.LD [("M Tab", windows W.focusDown),("", onGroup W.focusDown')]) -- Focus next tab down
+    -- , ((modm,                   xK_semicolon ), CK.bindOn CK.LD [("Shadolayout", windows W.focusUp),  ("", onGroup W.focusUp')]  ) -- Focus next tab up
+    -- , ((modm,                   xK_apostrophe), CK.bindOn CK.LD [("Shadolayout", windows W.focusDown),("", onGroup W.focusDown')]) -- Focus next tab down
     , ((modm .|. shiftMask,     xK_semicolon ), windows W.swapUp                        ) -- Swap tab up
     , ((modm .|. shiftMask,     xK_apostrophe), windows W.swapDown                      ) -- Swap tab down
     , ((modm .|. controlMask,   xK_h         ), sendMessage $ pullGroup L               ) -- Pull group from the left
