@@ -25,6 +25,7 @@ import XMonad.Actions.DynamicProjects
 import XMonad.Actions.GridSelect
 import XMonad.Actions.Navigation2D
 import XMonad.Actions.SpawnOn
+import XMonad.Actions.NoBorders
 import qualified XMonad.Actions.Submap           as SM
 -- import qualified XMonad.Actions.TreeSelect       as TS
 import qualified XMonad.Actions.Search as S
@@ -75,7 +76,7 @@ import XMonad.Layout.LayoutModifier
 import XMonad.Layout.Master
 import XMonad.Layout.MultiToggle --(mkToggle, single, EOT(EOT), (??))
 import XMonad.Layout.MultiToggle.Instances (StdTransformers(FULL,NBFULL, MIRROR, NOBORDERS))
--- import XMonad.Layout.NoBorders
+import XMonad.Layout.NoBorders
 import XMonad.Layout.LayoutScreens
 import XMonad.Layout.PerScreen
 -- import XMonad.Layout.PerWorkspace
@@ -115,7 +116,8 @@ import XMonad.Util.NamedScratchpad
     -- Base
 myBrowser       = "firefox " -- Set default browser
 myFilemngr      = "vifmrun" -- Set default file manager
-myFont          = "xft:Agave:pixelsize=14" -- Set font
+myFont          = "xft:Jura:pixelsize=14" -- Set font
+minimalFont     = "xft:Jura:pixelsize=1" -- Set font
 mySpacing       :: Int
 mySpacing       = 5 -- Set gaps between windows
 noSpacing       :: Int
@@ -137,9 +139,9 @@ myDmenuClipMenu  = myJail ++ "clipmenu" -- Dmenu todo prompt
 myDmenuMPDMenu   = myJail ++ "$HOME/.config/scripts/mpdmenu" -- Dmenu todo prompt
 
     -- Borders
-myBorderWidth   = 0
+myBorderWidth   = 2
 myNormalBorderColor  = "#8897F4"
-myFocusedBorderColor = "#9188ff"
+myFocusedBorderColor = "#ff79c6"
 
     -- Focus
 myFocusFollowsMouse :: Bool
@@ -190,11 +192,11 @@ myConfig = def {
                         <+> manageSpawn
                         <+> insertPosition End Newer -- SETS NEW WINDOW POSITION AND FOCUS
                         <+> namedScratchpadManageHook myScratchPads,
-                        -- <+> manageHook def,
     handleEventHook    = docksEventHook
                         <+> minimizeEventHook,
                         -- <+> fullscreenEventHook,
     startupHook        = myStartupHook
+                         <+> docksStartupHook
 }
                         -- <+> (scratchpadManageHook $ W.RationalRect 0 0 1 (3/4))
 -----------------------------------------------------------------------------}}}
@@ -244,15 +246,15 @@ overLineTheme = def
     }
 
 myTabTheme = def 
-    { fontName            = myFont 
+    { fontName            = minimalFont 
     , activeColor         = active
     , inactiveColor       = inactive
     , activeBorderColor   = active
     , inactiveBorderColor = cViolet
     , activeTextColor     = active
     , inactiveTextColor   = inactive
+    , decoHeight          = 12
     }
-
 ----------------------------------------------------------------------------}}}
 -- Layouts: {{{
 -------------------------------------------------------------------------------
@@ -280,7 +282,7 @@ myLayoutHook = fullScreenToggle
              $ hiddenWindows
              $ windowArrange
              -- $ fixFocus
-             $ shadoLayout ||| fixFocus spanFull ||| fixFocus spanMid ||| monocle ||| tiled
+             $ shadoLayout ||| fixFocus spanMid -- ||| fixFocus spanFull ||| fixFocus spanMid ||| monocle ||| tiled
 
   where
     fullScreenToggle = mkToggle (single FULL)
@@ -310,7 +312,7 @@ myLayoutHook = fullScreenToggle
 
     spanFull         = named "Span Full"
         -- $ avoidStruts
-        $ addOverline
+        -- $ addOverline
         $ windowNavigation
         $ mySpacing
         $ myGaps
@@ -319,15 +321,15 @@ myLayoutHook = fullScreenToggle
 
     spanMid         = named "Span Mid"
         -- $ avoidStruts
-        $ addOverline
+        -- $ addOverline
         $ windowNavigation
         $ mySpacing
         $ myGaps
         $ addTabs shrinkText myTabTheme
-        $ ThreeColMid 1 (1/1000) (2/3)
+        $ ThreeColMid 1 (1/1000) (1/3)
 
     masterTabbed     = named "Master Tabbed"
-        -- $ avoidStruts
+        $ avoidStruts
         $ addOverline
         $ mySpacing
         $ myGaps
@@ -335,19 +337,19 @@ myLayoutHook = fullScreenToggle
         $ tabbed shrinkText myTabTheme
 
     shadoLayout      = named "Shadolayout"
+        -- $ addOverline
         $ avoidStruts
         $ windowNavigation
-        $ addOverline
         $ addTabs shrinkText myTabTheme
         $ subLayout [] (Simplest ||| Accordion)
         $ ifWider 5760 wideLayouts stdLayouts
         where
             stdLayouts = myGaps $ mySpacing
-                $ (suffixed "T2 |" $ ResizableTall 1 (1/100) (1/2) []) |||
-                  (suffixed "BSP |" $ emptyBSP)
+                $ (suffixed "T2" $ ResizableTall 1 (1/100) (1/2) []) |||
+                  (suffixed "BSP" $ emptyBSP)
             wideLayouts = myGaps $ mySpacing
-                $ (suffixed "W 3C |" $ ThreeColMid 1 (1/20) (1/2)) |||
-                  (trimSuffixed 1 "W BSP |" $ hiddenWindows emptyBSP)
+                $ (suffixed "W 3C" $ ThreeColMid 1 (1/20) (1/2)) |||
+                  (trimSuffixed 1 "W BSP" $ hiddenWindows emptyBSP)
 ----------------------------------------------------------------------------}}}
 -- Window rules: {{{
 -------------------------------------------------------------------------------
@@ -355,7 +357,7 @@ myManageHook = (composeAll . concat $
     [[ className =? "lutris"                  --> doFloat ]
     ,[ className =? "wall-d"                  --> doFloat ]
     -- ,[ className =? "Sxiv"                    --> doFloat ]
-    ,[ title =? "QEMU"                    --> doFloat ]
+    ,[ title =? "QEMU"                        --> doFloat ]
     ,[ resource  =? "desktop_window"          --> doIgnore ] ])
         -- where
         --     role = stringProperty "WM_WINDOW_ROLE"
@@ -368,7 +370,6 @@ myManageHook = (composeAll . concat $
         --         assertMaster = className =? c --> doF W.swapMaster
     -- ,[ title     =? "ncmpcpp-ueberzug"        -?> doFloatAt' (46/1680) (1-176/1050) ]
     -- ,[ title     =? "ncmpcpp-ueberzug"        -?> doRectFloat' (W.RationalRect 0.65 0.65 0.3 0.3) ]
-
 ----------------------------------------------------------------------------}}}
 -- Fix Focus: {{{
 -------------------------------------------------------------------------------
@@ -403,16 +404,14 @@ fixFocus = ModifiedLayout $ FixFocus Nothing
 -- myStartupHook :: X ()
 myStartupHook = do
     setWMName "LG3D"
-    spawn "feh --bg-scale --no-fehbg $HOME/Pictures/Backgrounds/forest.png &"
-    spawn "flashfocus &"
+    -- spawn "feh --bg-scale --no-fehbg $HOME/Pictures/Backgrounds/forest.png &"
+    spawn "~/.local/bin/bgrot"
+    spawn "mpd_discord_richpresence -h=localhost -p=6601 --fork"
     spawn "killall picom; picom --experimental-backends &"
-    spawn "/usr/bin/emacs --daemon &"
-    spawn "killall polybar; polybar -c ~/.config/shadobar/config-xmonad shadobar" -- 2>~/.config/shadobar/log"
-    -- spawn "ps -ef | grep hideIt | grep -v grep | awk '{print $2}' | xargs kill; setsid /home/shadow/.config/shadobar/scripts/hideIt.sh --region 1920x0+1920+30 --peek -2 --name '^polybar-shadobar_DP-2$' &" -- Polybar hoverhider
+    spawn "killall polybar ; polybar -c ~/.config/shadobar/config-xmonad shadobar &"
     spawn "xset r rate 200 30"
+    spawn "~/.screenlayout/triple.sh"
     spawn "dbus-run-session --exit-with-session xmonad"
-    -- spawn "sleep 1; killall stalonetray; stalonetray &"
-    -- spawn "sleep 1; killall nm-applet; nm-applet &"
     setDefaultCursor xC_left_ptr
 ----------------------------------------------------------------------------}}}
 -- Main: {{{
@@ -422,7 +421,7 @@ main = do
     nScreens <- countScreens -- Gets current screen count
 
     xmonad 
-        $ fullscreenSupport
+        -- $ fullscreenSupport
         $ withNavigation2DConfig myNav2DConf
         $ withUrgencyHook NoUrgencyHook 
         -- $ dynamicProjects projects
@@ -568,6 +567,7 @@ shXPKeymap = M.fromList $
 -------------------------------------------------------------------------------
 myScratchPads :: [NamedScratchpad]
 myScratchPads = [ NS "terminal" spawnTerm findTerm manageTerm
+                , NS "miniterm" spawnMiniTerm findMiniTerm manageMiniTerm
                 , NS "ncmpcpp" spawnNcmpcpp findNcmpcpp manageNcmpcpp
                 , NS "nvim" spawnNvim findNvim manageNvim ]
     where
@@ -579,6 +579,14 @@ myScratchPads = [ NS "terminal" spawnTerm findTerm manageTerm
                        y = 0.2
                        w = 0.6
                        h = 0.6
+        spawnMiniTerm  = myTerminal ++ " -n mini_scratch sox -t pulseaudio default ~/Videos/Recordings/`date +%d-%m-%Y_%H-%M-%S`_recording.mp3"
+        findMiniTerm   = resource =? "mini_scratch"
+        manageMiniTerm = customFloating $ W.RationalRect x y w h
+                       where
+                       x = 0.4
+                       y = 0.4
+                       w = 0.2
+                       h = 0.2
         spawnNcmpcpp  = myTerminal ++ " -n 'ncmpcpp_scratch' '/home/shadow/.ncmpcpp/ncmpcpp-ueberzug/ncmpcpp-ueberzug'"
         findNcmpcpp   = resource =? "ncmpcpp_scratch"
         manageNcmpcpp = customFloating $ W.RationalRect x y w h
@@ -607,61 +615,127 @@ zipM' m ks as f b = zipWith (\k d -> (m ++ k, f d b)) ks as
 
 myKeys :: XConfig Layout -> M.Map (KeyMask, KeySym) (X ())
 myKeys conf@(XConfig {XMonad.modMask = modm}) = M.fromList $
-        -- Xmonad ---------------------------------------------------------------------------------
-    [ ((modm .|. controlMask,   xK_q     ), io (exitWith ExitSuccess)                   ) -- Quit
-    , ((modm,                   xK_q     ), spawn "xmonad --recompile; xmonad --restart") -- Restart
-    , ((mods.|.controlMask,     xK_F12   ), spawn "~/.config/scripts/switch_gpu"        ) -- Switch GPU
-    , ((modm,                   xK_F9    ), spawn "killall picom"                       ) -- Kill picom
-    , ((modm .|. shiftMask,     xK_F9    ), spawn (myJail ++"picom --experimental-backends &")     ) -- Start Picom
-    , ((modm .|. shiftMask,     xK_x     ), shiftToProjectPrompt shXPConfig             ) -- Project Prompt
-   -- , ((modm .|. shiftMask,     xK_x     ), switchProjectPrompt shXPConfig              ) -- Project Prompt
-        -- Session --------------------------------------------------------------------------------
-    -- , ((modm .|. shiftMask,     xK_m     ), spawn "lwsm save"   ) -- Save Session
-    -- , ((modm .|. controlMask,   xK_m     ), spawn "lwsm restore") -- Restore session
-        -- Base -----------------------------------------------------------------------------------
+        -- Xmonad -----------------------------------------------------------------------------------------------------------
+    [ ((modm .|. controlMask,   xK_q     ), io (exitWith ExitSuccess)                                                       ) -- Quit
+    , ((modm,                   xK_q     ), spawn "xmonad --recompile; xmonad --restart"                                    ) -- Restart
+    , ((mods.|.controlMask,     xK_F12   ), spawn "~/.config/scripts/switch_gpu"                                            ) -- Switch GPU
+    , ((modm,                   xK_F9    ), spawn "killall picom"                                                           ) -- Kill picom
+    , ((modm .|. shiftMask,     xK_F9    ), spawn (myJail ++"picom --experimental-backends &")                              ) -- Start Picom
+    -- , ((modm .|. shiftMask,     xK_x     ), shiftToProjectPrompt shXPConfig                                              ) -- Project Prompt
+    -- , ((modm .|. shiftMask,     xK_x     ), switchProjectPrompt shXPConfig                                               ) -- Project Prompt
+        -- Base -------------------------------------------------------------------------------------------------------------
     , ((modm .|. shiftMask,     xK_Return), spawn $ XMonad.terminal conf                                                    ) -- Terminal
     , ((modm,                   xK_p     ), spawn myLauncher                                                                ) -- Dmenu
     , ((modm .|. controlMask,   xK_p     ), spawn myLauncherCalc                                                            ) -- Calculator
     , ((modm,                   xK_b     ), sendMessage ToggleStruts >> spawn "polybar-msg cmd toggle"                      ) -- Toggle Bar
-    , ((modm .|. shiftMask,     xK_b     ), sendMessage $ (MT.Toggle NOBORDERS)                                             ) -- Toggle Borders
-    -- , ((modm .|. controlMask,   xK_n     ), spawn (myTerminal ++ "nmcli dev wifi connect GENEVASTUDENT")                    ) -- Restart net GENEVASTUDENT
-    , ((modm .|. controlMask,   xK_n     ), spawn (myJail ++ myTerminal ++ "nmcli dev wifi connect 'ionit 2.4'")                    ) -- Restart net
-    , ((modm,     xK_KP_Add     ), spawn "feh --bg-scale --no-fehbg $HOME/Pictures/Backgrounds/pretty.jpg &"                ) -- Set Lofi Background
-    , ((modm,     xK_KP_Subtract), spawn "feh --bg-scale --no-fehbg $HOME/Pictures/Backgrounds/forest.png &"                ) -- Set Forest Background
-    , ((mods,                   xK_d     ), spawn (myJail ++ dateScript)                                                                ) -- Display date
-    , ((modm,                   xK_o     ), spawn bigO                                                                      ) -- BigOcheatsheet
-    -- , ((modm,                   xK_F7    ), spawn "~/.screenlayout/scs.sh; xmonad --restart"                                                  ) -- Fix Screens
-    -- , ((modm,                   xK_F7    ), spawn "~/.screenlayout/home.sh; xmonad --restart"                                                  ) -- Fix Screens
-    , ((modm,                   xK_F7    ), spawn "~/.screenlayout/triple.sh; xmonad --restart"                                                  ) -- Fix Screens
+    , ((modm .|. shiftMask,     xK_b     ), spawn "killall polybar")
     , ((modm .|. controlMask,   xK_b     ), spawn "killall polybar; polybar -c ~/.config/shadobar/config-xmonad shadobar"   ) -- Restart polybar
-    -- , ((mods,                   xK_p     ), spawn "betterlockscreen -l blur -r 1920x1080 -b 0.2 -t 'Welcome back, Shado...'") -- Lock Screen
-    , ((mods,                   xK_p     ), spawn (myJail ++ "betterlockscreen -l -r 1920x1080 -t 'Welcome back, Shado...'")) -- Lock Screen
-        -- Layouts --------------------------------------------------------------------------------
-    , ((modm,                   xK_t     ), withFocused $ windows . W.sink              ) -- Push win into tiling
-    , ((modm .|. shiftMask,     xK_t     ), sendMessage $ Toggle MIRROR                 ) -- Toggles Mirror Layout mode
-    -- , ((modm,                   xK_space ), sequence_ [sendMessage NextLayout, rescreen]) -- Rotate available layouts
-    , ((modm,                   xK_space ), sendMessage NextLayout                      ) -- Rotate available layouts
-    , ((modm .|. shiftMask,     xK_space ), toSubl NextLayout                           )
-    , ((modm .|. controlMask,   xK_space ), setLayout $ XMonad.layoutHook conf          ) -- Reset layouts on current workspace
-    , ((mods,                   xK_space ), layoutScreens 1 (fixedLayout [Rectangle 0 0 5760 1080])) -- Make 3 monitors into 1
-    , ((mods .|. shiftMask,     xK_space ), rescreen                                    ) -- Fix layoutScreens
-        -- Workspaces -----------------------------------------------------------------------------
-    , ((modm .|. controlMask,   xK_Right ), nextWS                                      ) -- Cycle Right
-    , ((modm .|. controlMask,   xK_Left  ), prevWS                                      ) -- Cycle Left
-        -- Tabs -----------------------------------------------------------------------------------
-    -- , ((modm,                   xK_semicolon ), CK.bindOn CK.LD [("M Tab", windows W.focusUp),  ("", onGroup W.focusUp')]  ) -- Focus next tab up
-    -- , ((modm,                   xK_apostrophe), CK.bindOn CK.LD [("M Tab", windows W.focusDown),("", onGroup W.focusDown')]) -- Focus next tab down
-    , ((modm .|. shiftMask,     xK_semicolon ), windows W.swapUp                        ) -- Swap tab up
-    , ((modm .|. shiftMask,     xK_apostrophe), windows W.swapDown                      ) -- Swap tab down
-    , ((modm .|. controlMask,   xK_h         ), sendMessage $ pullGroup L               ) -- Pull group from the left
-    , ((modm .|. controlMask,   xK_j         ), sendMessage $ pullGroup R               ) -- Pull group from the bottom
-    , ((modm .|. controlMask,   xK_k         ), sendMessage $ pullGroup U               ) -- Pull group from the top
-    , ((modm .|. controlMask,   xK_l         ), sendMessage $ pullGroup D               ) -- Pull group from the right
-    , ((modm,                   xK_z         ), withFocused (sendMessage . UnMerge)     ) -- Unmerges focused window from sublayout
-    , ((modm .|. shiftMask,     xK_z         ), withFocused (sendMessage . MergeAll)    ) -- Merges all windows into sublayout
-        -- BSP --------------------------------------------------------------------------------
-    -- , ((modm,    xK_semicolon ), CK.bindOn CK.LD [("Shadolayout", windows W.focusUp),  ("", onGroup W.focusUp')]  ) -- Change size BSP
-    -- , ((modm,    xK_apostrophe), CK.bindOn CK.LD [("Shadolayout", windows W.focusDown),("", onGroup W.focusDown')]) -- Change size BSP
+    , ((modm,                   xK_o     ), withFocused toggleBorder                                                        ) -- Toggle Borders
+    , ((modm .|. controlMask,   xK_n     ), spawn (myTerminal ++ "nmcli dev wifi connect ionit\\ 2.4")                      ) -- Restart network
+    , ((modm,              xK_KP_Add     ), spawn "feh --bg-scale --no-fehbg $HOME/Pictures/Backgrounds/pretty.jpg &"       ) -- Set Lofi Background
+    , ((modm,              xK_KP_Subtract), spawn "feh --bg-scale --no-fehbg $HOME/Pictures/Backgrounds/forest.png &"       ) -- Set Forest Background
+    , ((mods,                   xK_d     ), spawn (myJail ++ dateScript)                                                    ) -- Display date
+    , ((modm,                   xK_F7    ), spawn "~/.screenlayout/triple.sh; xmonad --restart"                             ) -- Fix Screens
+    , ((mods,                   xK_p     ), spawn "betterlockscreen -l -r 1920x1080 -t 'Welcome back, Shado...'"            ) -- Lock Screen
+    , ((mods,                   xK_grave ), spawn "~/.local/bin/bgrot"                                                      ) -- Random Background
+        -- Layouts ----------------------------------------------------------------------------------------------------------
+    , ((modm,                   xK_t     ), withFocused $ windows . W.sink                                                  ) -- Push win into tiling
+    , ((modm .|. shiftMask,     xK_t     ), sendMessage $ Toggle MIRROR                                                     ) -- Toggles Mirror Layout mode
+    , ((modm,                   xK_space ), sendMessage NextLayout                                                          ) -- Rotate available layouts
+    , ((modm .|. shiftMask,     xK_space ), toSubl NextLayout                                                               )
+    , ((modm .|. controlMask,   xK_space ), setLayout $ XMonad.layoutHook conf                                              ) -- Reset layouts on current workspace
+    , ((mods,                   xK_space ), layoutScreens 1 (fixedLayout [Rectangle 0 0 5760 1080])                         ) -- Make 3 monitors into 1
+    , ((mods .|. shiftMask,     xK_space ), rescreen                                                                        ) -- Fix layoutScreens
+        -- Workspaces -------------------------------------------------------------------------------------------------------
+    , ((modm .|. controlMask,   xK_Right ), nextWS                                                                          ) -- Cycle Right
+    , ((modm .|. controlMask,   xK_Left  ), prevWS                                                                          ) -- Cycle Left
+        -- Tabs -------------------------------------------------------------------------------------------------------------
+    , ((modm .|. shiftMask,     xK_semicolon ), windows W.swapUp                                                            ) -- Swap tab up
+    , ((modm .|. shiftMask,     xK_apostrophe), windows W.swapDown                                                          ) -- Swap tab down
+    , ((modm .|. controlMask,   xK_h         ), sendMessage $ pullGroup L                                                   ) -- Pull group from the left
+    , ((modm .|. controlMask,   xK_j         ), sendMessage $ pullGroup R                                                   ) -- Pull group from the bottom
+    , ((modm .|. controlMask,   xK_k         ), sendMessage $ pullGroup U                                                   ) -- Pull group from the top
+    , ((modm .|. controlMask,   xK_l         ), sendMessage $ pullGroup D                                                   ) -- Pull group from the right
+    , ((modm,                   xK_z         ), withFocused (sendMessage . UnMerge)                                         ) -- Unmerges focused window from sublayout
+    , ((modm .|. shiftMask,     xK_z         ), withFocused (sendMessage . MergeAll)                                        ) -- Merges all windows into sublayout
+        -- Windows ----------------------------------------------------------------------------------------------------------
+    , ((modm .|. shiftMask,     xK_c     ), kill                                                                            ) -- close window
+    , ((modm,                   xK_n     ), refresh                                                                         ) -- Resize viewed windows to the correct size
+    , ((modm,                   xK_d     ), withFocused hideWindow                                                          ) -- Hide focused
+    , ((modm .|. shiftMask,     xK_d     ), popOldestHiddenWindow                                                           ) -- Show oldest hidden window
+    -- , ((modm,                   xK_a     ), toggleCopyToAll                                                              ) -- Sticky Window
+    , ((modm,                   xK_Tab   ), windows W.focusDown                                                             ) -- Focus next
+    , ((modm,                   xK_j     ), windows W.focusDown                                                             ) -- Focus next
+    , ((modm,                   xK_k     ), windows W.focusUp                                                               ) -- Focus prev
+    , ((modm,                   xK_m     ), windows W.focusMaster                                                           ) -- Focus master
+    , ((modm,                   xK_Return), windows W.swapMaster                                                            ) -- Swap focused win with master
+    , ((modm .|. shiftMask,     xK_j     ), windows W.swapDown                                                              ) -- Swap focused win with next win
+    , ((modm .|. shiftMask,     xK_k     ), windows W.swapUp                                                                ) -- Swap focused win with previous win
+    , ((modm,                   xK_h     ), sendMessage Shrink                                                              ) -- Shrink master area
+    , ((modm,                   xK_l     ), sendMessage Expand                                                              ) -- Expand master area
+    , ((modm .|. shiftMask,     xK_h     ), sendMessage MirrorShrink                                                        ) -- Shrink vertically
+    , ((modm .|. shiftMask,     xK_l     ), sendMessage MirrorExpand                                                        ) -- Expand vertically
+    , ((modm,                   xK_bracketright), sendMessage (IncMasterN 1)                                                ) -- Increment num of windows in master area
+    , ((modm,                   xK_bracketleft), sendMessage (IncMasterN (-1))                                              ) -- Deincrement num of windows in master area
+    , ((modm,                   xK_comma ), nextScreen                                                                      ) -- Focus next mon
+    , ((modm,                   xK_period), prevScreen                                                                      ) -- Focus prev mon
+      -- Scratchpads --------------------------------------------------------------------------------------------------------
+    , ((modm,                   xK_s), namedScratchpadAction myScratchPads "terminal"                                       ) -- Terminal Scrtchpd
+    , ((modm .|. shiftMask,     xK_s), namedScratchpadAction myScratchPads "ncmpcpp"                                        ) -- Ncmpcpp Scrtchpd
+    , ((modm,                   xK_v), namedScratchpadAction myScratchPads "nvim"                                           ) -- Ncmpcpp Scrtchpd
+        -- Multimedia (Volume, MPD) -----------------------------------------------------------------------------------------
+    , ((0,                          0x1008FF11), spawn "pulsemixer --change-volume -2"                                      ) -- Volume Down 
+    , ((0,                          0x1008FF13), spawn "pulsemixer --change-volume +2"                                      ) -- Volume Up
+    , ((0,                          0x1008FF12), spawn "pulsemixer --toggle-mute"                                           ) -- Mute
+    , ((0,                          0x1008ffb2), spawn "amixer set Capture toggle"                                          ) -- Mute MIC
+    , ((0,                          0x1008FF14), spawn "mpc --host=localhost --port=6601 toggle"                            ) -- Play/Pause
+    , ((modm,                       0x1008FF15), spawn "mpc --host=localhost --port=6601 shuffle"                           ) -- Shuffle
+    , ((0,                          0x1008FF16), spawn "mpc --host=localhost --port=6601 prev"                              ) -- Prev Track
+    , ((0,                          0x1008FF17), spawn "mpc --host=localhost --port=6601 next"                              ) -- Next Track
+        -- Brightness
+    , ((0,                          0x1008FF02), spawn "xbacklight -inc 2"                                                  ) -- Inc Brightness
+    , ((0,                          0x1008FF03), spawn "xbacklight -dec 2"                                                  ) -- Dec Brightness
+        -- Tomb -------------------------------------------------------------------------------------------------------------
+    , ((mods,                       xK_t), spawn (myTerminal ++ "tomb open ~/dev/data -k ~/dev/.non -f")                    ) -- Open tomb
+    , ((mods .|. shiftMask,         xK_t), spawn (myTerminal ++ "sudo tomb close")                                          ) -- Close tomb
+    , ((mods .|. controlMask,       xK_t), spawn (myTerminal ++ "sudo tomb slam")                                           ) -- Tomb Slam!
+        -- Open Applications ------------------------------------------------------------------------------------------------
+    , ((modm,                       xK_KP_Multiply), spawn "wall-d ~/Pictures/Backgrounds"                                  ) -- Wall-d
+    , ((mods .|. shiftMask,         xK_s      ), spawn "powermenu"                                                          ) -- Powermenu
+    , ((mods,                       xK_b      ), spawn (myJail ++ myBrowser)                                                ) -- Browser
+    , ((mods .|. shiftMask,         xK_d      ), spawn (myJail ++ "Discord --no-sandbox")                                   ) -- Discord
+    , ((mods .|. controlMask,       xK_d      ), spawn "killall DiscordPTB"                                                 ) -- Kill Discord
+    , ((mods,                       xK_k      ), spawn (myJail ++ "kdeconnect-sms --style 'kvantum'")                       ) -- KDEConnect SMS
+    , ((mods,                       xK_e      ), spawn (myJail ++ "emacsclient -c")                                         ) -- Emacsclient
+    , ((mods .|. shiftMask,         xK_e      ), spawn (myJail ++ "emacs")                                                  ) -- Emacs
+    , ((mods .|. controlMask,       xK_e      ), spawn (myJail ++ myTerminal ++ "emacs -nw")                                ) -- Emacs NW
+    , ((mods,                       xK_g      ), spawn (myJail ++ "ghidra")                                                 ) -- Ghidra
+        -- Screenshots ------------------------------------------------------------------------------------------------------
+    , ((shiftMask .|. controlMask,  xK_Print  ), spawn (myJail ++ "flameshot gui -p ~/Pictures/Screenshots")                ) -- Area
+    , ((0,                          xK_Print  ), spawn "scrot '~/Pictures/Screenshots/%F_%T.png'"                           ) -- Fullscreen
+    , ((mods .|. modm,              xK_Print  ), spawn "flameshot screen -r -c -p ~/Pictures/Screenshots"                   ) -- Monitor
+    , ((controlMask,                xK_Print  ), spawn "scrot -u '~/Pictures/Screenshots'"                                  ) -- Window
+    , ((modm .|. controlMask,       xK_Print  ), spawn "~/.config/scripts/imgurup"                                          ) -- Imgur
+        -- Grid Select ------------------------------------------------------------------------------------------------------
+    , ((modm,                       xK_g      ), goToSelected $ mygridConfig myGridTheme                                    ) -- Go to grid item
+    , ((modm .|. shiftMask,         xK_g      ), bringSelected $ mygridConfig myGridTheme                                   ) -- Grab and brind over grid item
+        -- Search Engine ----------------------------------------------------------------------------------------------------
+    , ((modm,                      xK_slash   ), SM.submap $ searchEngineMap $ S.promptSearch shXPConfig'                   ) -- Searches via prompt
+    , ((modm .|. shiftMask,        xK_slash   ), SM.submap $ searchEngineMap $ S.selectSearch                               ) -- Searches via clipboard
+        -- Record Button ----------------------------------------------------------------------------------------------------
+    , ((mods,                      xK_r), namedScratchpadAction myScratchPads "miniterm"                                    ) -- Ncmpcpp Scrtchpd
+        -- Prompts ----------------------------------------------------------------------------------------------------------
+    , ((mods,                      xK_v       ), spawn "VBoxManage startvm Wraith_Arch"                                     ) -- Open Black_Arch VM
+    , ((mods .|. shiftMask,        xK_v       ), spawn "VBoxManage startvm Win10Burner"                                     ) -- Open Win10 VM
+    , ((modm .|. shiftMask,        xK_m       ), spawn myDmenuMPDMenu                                                       ) -- MPD Menu
+    , ((mods,                      xK_x       ), SM.submap $ promptMap                                                      ) -- Prompts submap
+        -- Youtube Download -------------------------------------------------------------------------------------------------
+    -- , ((modm .|. shiftMask,         xK_y      ), spawn "ytdl"                                                            ) -- Yt->Mpv script
+        -- BSP --------------------------------------------------------------------------------------------------------------
+    -- , ((modm, xK_semicolon ), CK.bindOn CK.LD [("Shadolayout", windows W.focusUp),  ("", onGroup W.focusUp')]  ) -- Focus next tab up
+    -- , ((modm, xK_apostrophe), CK.bindOn CK.LD [("Shadolayout", windows W.focusDown),("", onGroup W.focusDown')]) -- Focus next tab down
+    -- , ((modm, xK_semicolon ), CK.bindOn CK.LD [("Shadolayout", windows W.focusUp),  ("", onGroup W.focusUp')]  ) -- Change size BSP
+    -- , ((modm, xK_apostrophe), CK.bindOn CK.LD [("Shadolayout", windows W.focusDown),("", onGroup W.focusDown')]) -- Change size BSP
     -- , ((modm,                 xK_h     ), CK.bindOn CK.LD [("Shadolayout", sendMessage $ ExpandTowards L)])
     -- , ((modm,                 xK_j     ), sendMessage $ ExpandTowards D)
     -- , ((modm,                 xK_k     ), sendMessage $ ExpandTowards U)
@@ -670,72 +744,7 @@ myKeys conf@(XConfig {XMonad.modMask = modm}) = M.fromList $
     -- , ((modm .|. shiftMask,   xK_j     ), sendMessage $ ShrinkFrom D   )
     -- , ((modm .|. shiftMask,   xK_k     ), sendMessage $ ShrinkFrom U   )
     -- , ((modm .|. shiftMask,   xK_l     ), sendMessage $ ShrinkFrom R   )
-        -- Windows --------------------------------------------------------------------------------
-    , ((modm .|. shiftMask,     xK_c     ), kill                                        ) -- close window
-    , ((modm,                   xK_n     ), refresh                                     ) -- Resize viewed windows to the correct size
-    , ((modm,                   xK_d     ), withFocused hideWindow                      ) -- Hide focused
-    , ((modm .|. shiftMask,     xK_d     ), popOldestHiddenWindow                       ) -- Show oldest hidden window
-    -- , ((modm,                   xK_a     ), toggleCopyToAll                             ) -- Sticky Window
-    , ((modm,                   xK_Tab   ), windows W.focusDown                         ) -- Focus next
-    , ((modm,                   xK_j     ), windows W.focusDown                         ) -- Focus next
-    , ((modm,                   xK_k     ), windows W.focusUp                           ) -- Focus prev
-    -- , ((modm,                   xK_m     ), windows W.focusMaster                       ) -- Focus master
-    , ((modm,                   xK_Return), windows W.swapMaster                        ) -- Swap focused win with master
-    , ((modm .|. shiftMask,     xK_j     ), windows W.swapDown                          ) -- Swap focused win with next win
-    , ((modm .|. shiftMask,     xK_k     ), windows W.swapUp                            ) -- Swap focused win with previous win
-    , ((modm,                   xK_h     ), sendMessage Shrink                          ) -- Shrink master area
-    , ((modm,                   xK_l     ), sendMessage Expand                          ) -- Expand master area
-    , ((modm .|. shiftMask,     xK_h     ), sendMessage MirrorShrink                    ) -- Shrink vertically
-    , ((modm .|. shiftMask,     xK_l     ), sendMessage MirrorExpand                    ) -- Expand vertically
-    , ((modm,                   xK_bracketright), sendMessage (IncMasterN 1)            ) -- Increment num of windows in master area
-    , ((modm,                   xK_bracketleft), sendMessage (IncMasterN (-1))          ) -- Deincrement num of windows in master area
-    , ((modm,                   xK_comma ), nextScreen                                  ) -- Focus next mon
-    , ((modm,                   xK_period), prevScreen                                  ) -- Focus prev mon
-      -- Scratchpads ----------------------------------------------------------------------------
-    , ((modm,                   xK_s), namedScratchpadAction myScratchPads "terminal"   ) -- Terminal Scrtchpd
-    , ((modm .|. shiftMask,     xK_s), namedScratchpadAction myScratchPads "ncmpcpp"    ) -- Ncmpcpp Scrtchpd
-    , ((modm,                   xK_v), namedScratchpadAction myScratchPads "nvim"       ) -- Ncmpcpp Scrtchpd
-        -- Multimedia (Volume, MPD) ---------------------------------------------------------------------
-    , ((0,                          0x1008FF11), spawn "pulsemixer --change-volume -2"                   ) -- Volume Down 
-    , ((0,                          0x1008FF13), spawn "pulsemixer --change-volume +2"                   ) -- Volume Up
-    , ((0,                          0x1008FF12), spawn "pulsemixer --toggle-mute"                        ) -- Mute
-    , ((0,                          0x1008FF14), spawn "mpc --host=localhost --port=6601 toggle"                                      ) -- Play/Pause
-    , ((modm,                       0x1008FF15), spawn "mpc --host=localhost --port=6601 shuffle"                                     ) -- Shuffle
-    , ((0,                          0x1008FF16), spawn "mpc --host=localhost --port=6601 prev"                                        ) -- Prev Track
-    , ((0,                          0x1008FF17), spawn "mpc --host=localhost --port=6601 next"                                        ) -- Next Track
-        -- Brightness
-    , ((0,                          0x1008FF02), spawn "xbacklight -inc 2"                               ) -- Inc Brightness
-    , ((0,                          0x1008FF03), spawn "xbacklight -dec 2"                               ) -- Dec Brightness
-        -- Youtube Download ------------------------------------------------------------------------------
-    -- , ((modm .|. shiftMask,         xK_y      ), spawn "ytdl"                                            ) -- Yt->Mpv script
-        -- Open Applications -----------------------------------------------------------------------------
-    , ((modm,                       xK_KP_Multiply), spawn "wall-d ~/Pictures/Backgrounds"               ) -- Wall-d
-    , ((mods .|. shiftMask,         xK_s      ), spawn "powermenu"                                         ) -- Powermenu
-    , ((mods,                       xK_b      ), spawn (myJail ++ myBrowser)                                         ) -- Browser
-    , ((mods .|. controlMask,       xK_m      ), spawn (myJail ++ myTerminal ++ "calcurse")                        ) -- Calcurse
-    , ((mods .|. shiftMask,         xK_d      ), spawn (myJail ++ "Discord")                                         ) -- Discord
-    , ((mods .|. controlMask,       xK_d      ), spawn "killall Discord"                                 ) -- Kill Discord
-    , ((mods,                       xK_k      ), spawn (myJail ++ "kdeconnect-sms --style 'kvantum'")                ) -- KDEConnect SMS
-    , ((mods,                       xK_e      ), spawn (myJail ++ "emacsclient -c")                                  ) -- Emacsclient
-    , ((mods .|. shiftMask,         xK_e      ), spawn (myJail ++ "emacs")                                           ) -- Emacs
-    , ((mods .|. controlMask,       xK_e      ), spawn (myJail ++ myTerminal ++ "emacs -nw")                       ) -- Emacs NW
-    , ((mods,                       xK_g      ), spawn (myJail ++ "ghidra")                                          ) -- Ghidra
-        -- Screenshots -----------------------------------------------------------------------------------
-    , ((shiftMask .|. controlMask,  xK_Print  ), spawn (myJail ++ "flameshot gui -p ~/Pictures/Screenshots")         ) -- Area
-    , ((0,                          xK_Print  ), spawn "scrot '~/Pictures/Screenshots/%F_%T.png'"        ) -- Fullscreen
-    , ((mods .|. modm,              xK_Print  ), spawn "flameshot screen -r -c -p ~/Pictures/Screenshots") -- Monitor
-    , ((controlMask,                xK_Print  ), spawn "scrot -u '~/Pictures/Screenshots'"               ) -- Window
-    , ((modm .|. controlMask,       xK_Print  ), spawn "~/.config/scripts/imgurup"                       ) -- Imgur
-        -- Grid Select -----------------------------------------------------------------------------------
-    , ((modm,                       xK_g      ), goToSelected $ mygridConfig myGridTheme                 ) -- Go to grid item
-    , ((modm .|. shiftMask,         xK_g      ), bringSelected $ mygridConfig myGridTheme                ) -- Grab and brind over grid item
-        -- Search Engine ---------------------------------------------------------------------------------
-    , ((modm,                      xK_slash   ), SM.submap $ searchEngineMap $ S.promptSearch shXPConfig') -- Searches via prompt
-    , ((modm .|. shiftMask,        xK_slash   ), SM.submap $ searchEngineMap $ S.selectSearch            ) -- Searches via clipboard
-        -- Prompts ---------------------------------------------------------------------------------------
-    , ((modm,                      xK_m       ), spawn myDmenuMPDMenu                                          ) -- MPD Menu
-    , ((modm .|. shiftMask,        xK_m       ), spawn "~/.config/scripts/histsearch") -- Command history search
-    , ((mods,                      xK_x       ), SM.submap $ promptMap                                   ) -- Prompts submap
+    -------------------------------------------------------------------------------------------------------------------------
     ]
     ++
     [((m .|. modm, k), windows $ onCurrentScreen f i)
