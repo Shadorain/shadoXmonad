@@ -1,0 +1,12 @@
+xmonad-layout
+xmonad-git/
+xmobar-git/
+xmonad-contrib-git/
+.stack-work/
+prompt-history
+stack.yaml
+stack.yaml.lock
+xmonad-x86_64-linux
+xmonad.errors
+xmonad.o
+xmonad.hi
