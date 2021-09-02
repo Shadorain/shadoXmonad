@@ -1,0 +1,40 @@
+#!/bin/bash
+
+# This script is to build shadoXmonad up and running for you.
+# Run it only from the `.xmonad` directory with `./setup`
+
+# Clone xmonad locally. No dependencies needed on system other than stack and
+#  ghc. Plus we get all the features of bleeding-edge xmonad.
+git clone "https://github.com/xmonad/xmonad" xmonad-git
+git clone "https://github.com/xmonad/xmonad-contrib" xmonad-contrib-git
+git clone "https://github.com/jaor/xmobar" xmobar-git
+if [[ $? -ne 0 ]]; then
+    echo "<== | Error: Cloning repositories failed | ==>"
+    echo " -- Check your internet conneciton, or try again --"
+    exit 1
+fi
+
+# Initialize the folder as a stack project
+stack init --force
+if [[ $? -ne 0 ]]; then
+    echo "<== | Error: Stack initialization failed | ==>"
+    exit 1
+fi
+
+# Install all necessary stack tools locally to build xmonad off our config.
+stack install
+if [[ $? -ne 0 ]]; then
+    echo "<== | Error: Stack install failed | ==>"
+    echo " -- Check the stack.yaml file that it has the correct repositories"
+    echo "      under packages: --"
+    exit 1
+fi
+
+# Check if `~/.local/bin` is in path, if not then warn.
+chk=$(echo "${PATH}" | grep ".local/bin")
+if [[ -z $chk ]]; then
+    echo "#== | Warning: Add ~/.local/bin to your PATH to run xmonad normally | ==#"
+fi
+
+echo "*== | Success! ShadoXmonad succeessfully built | ==*"
+echo "   All that is left is change the config to what you want and enjoy!   "
