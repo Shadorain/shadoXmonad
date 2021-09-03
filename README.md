@@ -16,7 +16,8 @@ as dependencies. They will all be built locally for you so that:
 
 One thing you may need as a dependency before hand is this package which may
 be only if you are on Void Linux but it symlinks libraries that are needed:
-`ncurses-libtinfo-devel`. Make sure to install this before you run setup
+`ncurses-libtinfo-devel`. Make sure to install this before you run setup.
+You may need this package as well to build: `libXrandr-devel`.
 
 Simply clone the repository and run the setup script provided from your xmonad
 directory.
