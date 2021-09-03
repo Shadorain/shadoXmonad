@@ -9,10 +9,14 @@ of efficiency and power!
 ## Install
 
 Super simple install. You do not even need `xmonad`/`xmonad-contrib`/`xmobar`
-as dependencies. They will all be built locally for you so that
+as dependencies. They will all be built locally for you so that:
 
 1. You aren't in haskell dependency hell on your root system
 2. You get the power of bleeding edge xmonad with many features!
+
+One thing you may need as a dependency before hand is this package which may
+be only if you are on Void Linux but it symlinks libraries that are needed:
+`ncurses-libtinfo-devel`. Make sure to install this before you run setup
 
 Simply clone the repository and run the setup script provided from your xmonad
 directory.
