@@ -5,14 +5,14 @@
 
 # Clone xmonad locally. No dependencies needed on system other than stack and
 #  ghc. Plus we get all the features of bleeding-edge xmonad.
-git clone "https://github.com/xmonad/xmonad" xmonad-git
-git clone "https://github.com/xmonad/xmonad-contrib" xmonad-contrib-git
-git clone "https://github.com/jaor/xmobar" xmobar-git
-if [[ $? -ne 0 ]]; then
-    echo "<== | Error: Cloning repositories failed | ==>"
-    echo " -- Check your internet conneciton, or try again --"
-    exit 1
-fi
+#git clone "https://github.com/xmonad/xmonad" xmonad-git
+#git clone "https://github.com/xmonad/xmonad-contrib" xmonad-contrib-git
+#git clone "https://github.com/jaor/xmobar" xmobar-git
+#if [[ $? -ne 0 ]]; then
+#    echo "<== | Error: Cloning repositories failed | ==>"
+#    echo " -- Check your internet conneciton, or try again --"
+#    exit 1
+#fi
 
 # Initialize the folder as a stack project
 stack init --force
